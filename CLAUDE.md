@@ -1,8 +1,10 @@
-# portfolio-starter
+# p1-invoice-audit
 
-The wired TypeScript foundation every TS portfolio project clones. Not an app — it is the proven
-ground (conventions, toolchain, gates, queue seam) that P1 (LangGraph.js) and P2 (Mastra) are built
-on top of. P3 (Laravel) does not use this starter.
+The **P1 invoice/procurement-audit app** — the first portfolio build, cloned from `portfolio-starter`.
+Phase A ships the full application shell (database, synthetic AU seed, invoice PDFs, Hono API,
+pgmq-driven audit worker, React frontend, deploy) with the audit engine **mocked behind a single
+`auditInvoice()` seam**; Phase B drops the real LangGraph.js engine into that seam. All the
+conventions, toolchain, gates and queue seam below are inherited from the starter and still binding.
 
 ## House style — read this first
 

@@ -1,5 +1,5 @@
 {
-  "name": "portfolio-starter",
+  "name": "p1-invoice-audit",
   "private": true,
   "type": "module",
   "workspaces": ["apps/*"],
