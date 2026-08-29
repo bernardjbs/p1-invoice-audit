@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Env — never commit real secrets; the example is the exception below
+.env
+.env.*
+!.env.example
+
+# Logs / OS / editor cruft
+*.log
+.DS_Store
+.idea/
+.vscode/
