@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Bun is the package manager; Node is the runtime (CONVENTIONS §29 —
+      # dev is Bun, prod is Node, so CI runs the checks on Node to catch divergence).
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun run test
+      - run: bun run build
+
+      # P1 eval gate (RAGAS thresholds for agent/RAG behaviour) slots in HERE —
+      # see CONVENTIONS §13. It fails the job when a metric regresses.
