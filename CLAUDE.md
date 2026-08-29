@@ -29,6 +29,30 @@ Develop, install and test with **Bun** locally. Deploy the Hono API to the **Nod
 (stable/GA). Hono runs identically on both. Because dev (Bun) ≠ prod (Node), the CI integration/e2e
 tier runs on **Node** to catch runtime divergence; the unit tier on Bun is fine.
 
+## Vendor agent skills (§28)
+
+Three delivery mechanisms are in use; a fresh clone must restore two of them:
+
+| Mechanism | Vendors | Tracked in | Restore after clone |
+|---|---|---|---|
+| `skills` CLI (project-level files) | Vercel/AI SDK (9), shadcn (`shadcn`, `migrate-radix-to-base`) | `skills-lock.json` | `bunx skills experimental_install` |
+| Claude Code plugins (project-scoped) | Supabase, `postgres-best-practices`, `claude-api` | `.claude/settings.json` | re-add marketplaces (below), then they load |
+| TanStack Intent (on-demand) | TanStack Router/Query | `AGENTS.md` | nothing — agent runs `bunx @tanstack/intent load` per task |
+
+**Fresh-clone setup** (marketplaces are user-level, so they don't travel with the repo):
+
+```
+claude plugin marketplace add supabase/agent-skills
+claude plugin marketplace add anthropics/skills
+bunx skills experimental_install
+```
+
+Anthropic marketplace is registered but only `claude-api` is enabled — the other four plugins
+(document-skills, example-skills, academy-guide, discernment-nudge) are deliberately not installed.
+
+**Docs-for-LLMs (`llms.txt`) are NOT skills** — React, Vite, Zod, Hono, Bun, LangGraph (§28 second
+table) are fed to agents via the `doc-researcher` subagent, not installed here.
+
 ## Background jobs — the pgmq seam (§22)
 
 Background work (the audit job) runs via **Supabase Queues (`pgmq`)**, NOT Trigger.dev. The engine

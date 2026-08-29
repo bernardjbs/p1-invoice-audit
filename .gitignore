@@ -11,6 +11,11 @@ build/
 .env.*
 !.env.example
 
+# Agent skills installed via the `skills` CLI — tracked by skills-lock.json only.
+# Restore after clone with: bunx skills experimental_install
+.agents/
+.claude/skills/
+
 # Logs / OS / editor cruft
 *.log
 .DS_Store
