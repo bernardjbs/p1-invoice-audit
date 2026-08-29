@@ -45,6 +45,7 @@ Three delivery mechanisms are in use; a fresh clone must restore two of them:
 claude plugin marketplace add supabase/agent-skills
 claude plugin marketplace add anthropics/skills
 bunx skills experimental_install
+git config core.hooksPath .githooks   # enable the pre-push fast-gate hook (per-clone)
 ```
 
 Anthropic marketplace is registered but only `claude-api` is enabled — the other four plugins

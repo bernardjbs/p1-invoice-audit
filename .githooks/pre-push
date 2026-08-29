@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Fast gate (pre-push tier, CONVENTIONS §13): lint + typecheck + test.
+# Full tier (build + eval gate) runs in CI; this only guards the fast checks.
+# Enable per-clone with: git config core.hooksPath .githooks
+set -euo pipefail
+
+if ! command -v bun >/dev/null 2>&1; then
+  echo "pre-push: 'bun' not found on PATH — install Bun or fix your shell env." >&2
+  exit 1
+fi
+
+echo "pre-push: running fast gate (lint + typecheck + test)…"
+bun run lint
+bun run typecheck
+bun run test
+echo "pre-push: fast gate passed."
