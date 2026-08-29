@@ -326,14 +326,38 @@ lean is clearly this way.]**
 
 ---
 
-## 13. Testing & quality (pointer — expand per project)
+## 13. Testing & quality
 
-- **Vitest**, tests **colocated** as `*.test.ts(x)` next to the unit (not a mirror `__tests__` tree).
-- Test names describe behaviour, not implementation.
-- Baseline gates: ESLint (flat config) with `import/no-restricted-paths` (§1) + the type-import
-  rules, Prettier, `tsc --noEmit` in CI. Prefer a gate over a guideline.
-- (Your existing evidence-first discipline — mutation-proving, red-then-green, the RAGAS eval gate —
-  layers on top of this.)
+**Runner: Vitest.** Tests are **colocated** as `*.test.ts(x)` next to the unit (per §1 — not a
+mirror `__tests__` tree). Test names describe behaviour, not implementation. Each app owns its own
+`test` script (`vitest run`); the root `test` fans out across the workspace (`bun run --filter '*'
+test`). A pure unit needs no environment; a component test opts into jsdom per file.
+
+**The three gate tiers** (see `docs/development-workflow.md` in the build home for the full loop):
+
+| Tier | When | Runs | Enforced by |
+|---|---|---|---|
+| **Fast** (pre-push) | every `git push` | `lint` + `typecheck` + `test` (unit) | `.githooks/pre-push` |
+| **Full** (CI) | every PR + push to `main` | fast tier **on Node** + `build` + the eval gate | `.github/workflows/ci.yml` |
+| **Smoke** (post-deploy) | after a deploy | a health probe against the live surface | deploy step |
+
+Runtime split (§29): the fast tier runs locally on **Bun**; CI runs the full tier on **Node** to
+catch Bun↔Node divergence. Prefer a **gate over a guideline** — machine-checkable beats a convention
+nobody runs.
+
+**Baseline lint:** ESLint flat config (`eslint.config.js`) — `@eslint/js` + `typescript-eslint`
+recommended, React-hooks rules for `apps/web`, `eslint-config-prettier` last so Prettier owns
+formatting. Prettier via `.prettierrc.json` (+ `prettier-plugin-tailwindcss` for class ordering).
+
+**The eval gate (AI behaviour — lands in P1).** Deterministic tests cannot judge an LLM's output
+quality. Agent/RAG behaviour is gated separately by a **RAGAS** eval suite (Python harness, shared
+across P1–P3) asserting metric thresholds (faithfulness, answer/context relevancy) on a fixed
+dataset; the CI `build` job fails if a threshold regresses. P1 wires the actual thresholds — this
+starter only reserves the CI slot (`.github/workflows/ci.yml`) and names the convention here.
+
+**Evidence-first discipline** — mutation-proving (break → observe red → restore → observe green),
+red-then-green hook proofs, reading results from the backend not the UI — layers on top of all three
+tiers.
 
 ---
 
