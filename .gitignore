@@ -21,3 +21,6 @@ build/
 .DS_Store
 .idea/
 .vscode/
+
+# Ephemeral session handover (resume pointer; regenerated each wrap-up)
+docs/handover.md
