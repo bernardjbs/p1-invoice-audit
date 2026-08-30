@@ -8,4 +8,10 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(import.meta.dirname, './src') },
   },
+  // Dev: proxy API calls to the Hono server so the SPA can use relative /api.
+  server: {
+    proxy: {
+      '/api': { target: process.env.VITE_API_URL ?? 'http://localhost:3000', changeOrigin: true },
+    },
+  },
 })
