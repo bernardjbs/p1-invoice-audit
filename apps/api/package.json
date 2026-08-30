@@ -8,11 +8,14 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "seed": "bun run src/db/seed.ts",
     "build": "tsc --noEmit"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
     "hono": "^4.13.5",
+    "postgres": "^3.4.9",
     "zod": "^4.5.4"
   },
   "devDependencies": {
