@@ -4,7 +4,8 @@
 // bundled into the co-located, self-contained `./_handler.js` by vercel.json's
 // buildCommand (source: api-src/handler.ts). Bundling avoids the monorepo trap
 // where @vercel/node leaves a cross-directory `.ts` import unresolved at runtime.
-// `_handler.js` is generated at build time and gitignored.
-import handler from './_handler.js'
-
-export default handler
+//
+// Named HTTP-method exports (not a default) — Vercel's Node runtime ignores a
+// Response returned from a default export; named methods are the fetch-style
+// signature it honours. `_handler.js` is generated at build time and gitignored.
+export { GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD } from './_handler.js'
