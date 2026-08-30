@@ -20,10 +20,9 @@ try {
 export default defineConfig({
   test: {
     include: ['**/*.integration.test.ts'],
-    // One shared local DB → run files serially in a single process so tests
-    // never race on shared rows or the queue. Deterministic file order.
+    // One shared local DB → run test files one at a time so no two files touch
+    // the DB or queue concurrently (Vitest runs tests within a file serially by
+    // default). Deterministic order; the tier is re-runnable without a reset.
     fileParallelism: false,
-    pool: 'forks',
-    poolOptions: { forks: { singleFork: true } },
   },
 })
