@@ -11,15 +11,19 @@ const DATABASE_URL =
   process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 
 /**
- * On Vercel (`process.env.VERCEL` is set at build + runtime) the API talks to
- * Supabase through the connection pooler, so it needs pgbouncer-safe options:
- * transaction-mode pooling has no prepared statements (`prepare: false`, required
- * on port 6543 and harmless on the session pooler), and the idle/lifetime caps
- * stop a warm function from pinning a pooler slot. Local dev/tests keep
- * postgres.js defaults so nothing there changes. (T14 — verified against the
- * postgres.js README + Supabase pooler docs.)
+ * Any Supabase connection-pooler URL (transaction mode, port 6543) forbids
+ * prepared statements, so `prepare: false` is required whenever we talk to the
+ * pooler — that's the deployed function (`process.env.VERCEL` set) AND any local
+ * admin run against prod (seed, prod-worker setup) whose DATABASE_URL points at
+ * the pooler host. On Vercel we also cap idle/lifetime and `max: 1` so a warm
+ * function never pins a pooler slot. Local dev/tests use the direct DB
+ * (127.0.0.1) and keep postgres.js defaults, so nothing there changes. (T14 —
+ * verified against the postgres.js README + Supabase pooler docs.)
  */
-const serverless = Boolean(process.env.VERCEL)
-export const sql = serverless
-  ? postgres(DATABASE_URL, { prepare: false, idle_timeout: 20, max_lifetime: 60 * 30, max: 1 })
-  : postgres(DATABASE_URL)
+const isPooler = DATABASE_URL.includes('pooler.supabase.com')
+const options = process.env.VERCEL
+  ? { prepare: false, idle_timeout: 20, max_lifetime: 60 * 30, max: 1 }
+  : isPooler
+    ? { prepare: false }
+    : {}
+export const sql = postgres(DATABASE_URL, options)
