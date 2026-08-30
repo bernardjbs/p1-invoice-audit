@@ -46,8 +46,15 @@ Three delivery mechanisms are in use; a fresh clone must restore two of them:
 ```
 claude plugin marketplace add supabase/agent-skills
 claude plugin marketplace add anthropics/skills
-bunx skills experimental_install
+bunx skills experimental_install     # rebuilds .agents/skills/ (both .agents/ and .claude/skills/ are gitignored)
+# Re-link the .agents/skills into .claude/skills so Claude Code's native picker sees them
+# (the symlinks are gitignored + hand-made, so they do NOT travel with the clone and
+#  `skills experimental_install` does NOT create them — this loop is required):
+mkdir -p .claude/skills
+for d in .agents/skills/*/; do n=$(basename "$d"); ln -sfn "../../.agents/skills/$n" ".claude/skills/$n"; done
 git config core.hooksPath .githooks   # enable the pre-push fast-gate hook (per-clone)
+# Then RESTART the session in this repo's cwd so the enabled plugins (supabase,
+# postgres-best-practices, claude-api) and the re-linked skills load into the picker.
 ```
 
 Anthropic marketplace is registered but only `claude-api` is enabled — the other four plugins
