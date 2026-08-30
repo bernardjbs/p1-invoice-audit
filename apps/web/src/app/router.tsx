@@ -2,6 +2,7 @@ import { createRootRoute, createRoute, createRouter } from '@tanstack/react-rout
 import { RootLayout } from './root-layout'
 import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { InvoicesPage } from '@/features/invoices/invoices-page'
+import { invoiceSearchSchema } from '@/features/invoices/search'
 import { InvoiceDetailPage } from '@/features/invoices/invoice-detail-page'
 import { UploadPage } from '@/features/invoices/upload-page'
 import { ReviewPage } from '@/features/review/review-page'
@@ -14,7 +15,12 @@ import { ReviewPage } from '@/features/review/review-page'
 const rootRoute = createRootRoute({ component: RootLayout })
 
 const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: DashboardPage })
-const invoicesRoute = createRoute({ getParentRoute: () => rootRoute, path: '/invoices', component: InvoicesPage })
+const invoicesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/invoices',
+  component: InvoicesPage,
+  validateSearch: invoiceSearchSchema,
+})
 const invoiceDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/invoices/$id',
