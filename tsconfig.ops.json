@@ -8,5 +8,5 @@
     "types": ["node"],
     "typeRoots": ["./node_modules/@types", "./apps/api/node_modules/@types"]
   },
-  "include": ["api/**/*.ts", "scripts/**/*.ts"]
+  "include": ["api-src/**/*.ts", "scripts/**/*.ts"]
 }

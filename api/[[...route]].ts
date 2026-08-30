@@ -1,16 +1,10 @@
-import { handle } from 'hono/vercel'
-import { app } from '../apps/api/src/app'
+// Thin, committed Vercel function entry (plan T14). Vercel detects functions
+// from the committed `api/` tree, so this file must exist in git. All real code
+// — the Hono app plus every dependency (hono, postgres, @supabase, zod) — is
+// bundled into the co-located, self-contained `./_handler.js` by vercel.json's
+// buildCommand (source: api-src/handler.ts). Bundling avoids the monorepo trap
+// where @vercel/node leaves a cross-directory `.ts` import unresolved at runtime.
+// `_handler.js` is generated at build time and gitignored.
+import handler from './_handler.js'
 
-/**
- * Vercel serverless entry for the Hono API (plan T14). A single catch-all
- * function serves every `/api/*` route on the SAME origin as the static SPA
- * (apps/web/dist), so the web's relative `/api` fetches work unchanged in prod.
- *
- * Node.js is Vercel's DEFAULT function runtime (CONVENTIONS §29) — no runtime
- * config is needed; adding one would only be to opt INTO Edge. The Hono app
- * already mounts its routes under `/api` (app.ts) and `handle()` passes the full
- * request path through, so no `basePath` change is required.
- *
- * Verified against hono.dev + vercel.com (doc-researcher, 2026-08-30).
- */
-export default handle(app)
+export default handler

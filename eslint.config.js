@@ -8,7 +8,7 @@ import globals from 'globals'
 export default tseslint.config(
   // Ignore build output, deps, and installed third-party agent skills
   // (.agents/skills + the .claude/skills symlinks into them).
-  { ignores: ['**/dist/**', '**/node_modules/**', '.agents/**', '.claude/**'] },
+  { ignores: ['**/dist/**', '**/node_modules/**', '.agents/**', '.claude/**', 'api/**/*.js'] },
 
   js.configs.recommended,
   ...tseslint.configs.recommended,
