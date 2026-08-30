@@ -31,6 +31,20 @@ Develop, install and test with **Bun** locally. Deploy the Hono API to the **Nod
 (stable/GA). Hono runs identically on both. Because dev (Bun) ≠ prod (Node), the CI integration/e2e
 tier runs on **Node** to catch runtime divergence; the unit tier on Bun is fine.
 
+## Secrets — Doppler (no `.env.local`)
+
+Secrets live in **Doppler**, not on disk. Project `p1-invoice-audit`, configs **`dev`** (local
+Supabase values) and **`prd`** (deploy creds: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`).
+`.env.local` is **deleted** — do not recreate it.
+
+- **Run everything through Doppler:** `doppler run -- <cmd>` (dev servers, `bun run seed`, `worker`,
+  `test:integration`, `e2e`). It injects secrets as env vars; children inherit them.
+- The dir is already bound (`doppler setup`, stored in global `~/.doppler` — nothing in the repo).
+  Fresh clone / new machine: `doppler login` then `doppler setup -p p1-invoice-audit -c dev`.
+- Code still best-effort-loads `.env.local` if present (harmless fallback), but Doppler is the source.
+- Why: keeps secrets out of the agent's context/transcript, and sidesteps `.env`-file `$`-expansion
+  bugs (Doppler injects directly). Prod → Vercel env via the Doppler↔Vercel dashboard integration.
+
 ## Vendor agent skills (§28)
 
 Three delivery mechanisms are in use; a fresh clone must restore two of them:
