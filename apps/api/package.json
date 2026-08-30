@@ -9,16 +9,18 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "seed": "bun run src/db/seed.ts",
+    "seed": "bun run src/db/seed.ts && bun run scripts/generate-invoice-pdfs.ts",
     "build": "tsc --noEmit"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
+    "@supabase/supabase-js": "^2.112.4",
     "hono": "^4.13.5",
     "postgres": "^3.4.9",
     "zod": "^4.5.4"
   },
   "devDependencies": {
-    "@types/node": "^26.4.0"
+    "@types/node": "^26.4.0",
+    "playwright": "^1.62.1"
   }
 }
