@@ -11,10 +11,13 @@
     "test": "bun run --filter '*' test",
     "test:integration": "bun run --filter '@starter/api' test:integration",
     "seed": "bun run --filter '@starter/api' seed",
-    "build": "bun run --filter '*' build"
+    "build": "bun run --filter '*' build",
+    "e2e": "playwright test",
+    "e2e:stub": "AUDIT_ENGINE=stub playwright test --grep @swap"
   },
   "devDependencies": {
     "@eslint/js": "^10",
+    "@playwright/test": "^1.62.1",
     "eslint": "^10",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",

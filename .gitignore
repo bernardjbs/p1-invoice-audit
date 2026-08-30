@@ -24,3 +24,9 @@ build/
 
 # Ephemeral session handover (resume pointer; regenerated each wrap-up)
 docs/handover.md
+
+# Playwright e2e artefacts
+/test-results/
+/playwright-report/
+/blob-report/
+/e2e/.auth/
