@@ -9,6 +9,9 @@ import type { AuditInput } from './types'
  * never depend on this DB path.
  */
 export const loadAuditInput: (invoiceId: string) => Promise<AuditInput> = async (invoiceId) => {
+  // LEFT joins: an uploaded invoice may have no PO/contract yet (plan T6/T11),
+  // and the engine must still produce its four checks. Only the invoice+vendor
+  // are required.
   const [invoice] = await sql<
     {
       id: string
@@ -19,8 +22,8 @@ export const loadAuditInput: (invoiceId: string) => Promise<AuditInput> = async 
       contract_id: string | null
       vendor_name: string
       vendor_is_approved: boolean
-      po_number: string
-      po_total_aud: string
+      po_number: string | null
+      po_total_aud: string | null
     }[]
   >`
     select i.id, i.invoice_number, i.subtotal_aud, i.gst_aud, i.total_aud, i.contract_id,
@@ -28,7 +31,7 @@ export const loadAuditInput: (invoiceId: string) => Promise<AuditInput> = async 
            po.po_number, po.total_aud as po_total_aud
     from invoices i
     join vendors v on v.id = i.vendor_id
-    join purchase_orders po on po.id = i.po_id
+    left join purchase_orders po on po.id = i.po_id
     where i.id = ${invoiceId}`
   if (!invoice) throw new Error(`invoice ${invoiceId} not found`)
 
@@ -59,7 +62,7 @@ export const loadAuditInput: (invoiceId: string) => Promise<AuditInput> = async 
       lineTotalAud: Number(l.line_total_aud),
     })),
     contractRates: contractRates.map((r) => ({ itemCode: r.item_code, rateAud: Number(r.rate_aud) })),
-    po: { poNumber: invoice.po_number, totalAud: Number(invoice.po_total_aud) },
+    po: { poNumber: invoice.po_number ?? '(none)', totalAud: Number(invoice.po_total_aud ?? 0) },
     vendor: { name: invoice.vendor_name, isApproved: invoice.vendor_is_approved },
   }
 }

@@ -1,7 +1,8 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { INVOICE_STATUSES } from '../db/statuses'
-import { createInvoice, getInvoiceDetail, listInvoices } from './service'
+import { enqueueAudit } from '../queue/audit-queue'
+import { createInvoice, getInvoiceDetail, listInvoices, setInvoiceStatus } from './service'
 
 /**
  * Invoice HTTP routes (plan T6): list (with status filter), detail, and
@@ -49,5 +50,17 @@ invoicesRoutes.post('/invoices', async (c) => {
   const bytes = new Uint8Array(await pdf.arrayBuffer())
 
   const id = await createInvoice({ ...fields.data, pdf: bytes })
+  // Auto-enqueue the audit on upload and mark it auditing (plan T7).
+  await enqueueAudit(id)
+  await setInvoiceStatus(id, 'auditing')
   return c.json({ id }, 201)
+})
+
+invoicesRoutes.post('/invoices/:id/audit', async (c) => {
+  const id = c.req.param('id')
+  const detail = await getInvoiceDetail(id)
+  if (!detail) return c.json({ error: { message: 'invoice not found', code: 'not_found' } }, 404)
+  await enqueueAudit(id)
+  await setInvoiceStatus(id, 'auditing')
+  return c.json({ status: 'queued' }, 202)
 })

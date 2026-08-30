@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { app } from '../app'
 import { sql } from '../db/client'
 import { loadAuditInput } from '../audit/data'
@@ -104,9 +104,15 @@ describe('POST /api/invoices (multipart upload)', () => {
 
     const [row] = await sql<{ status: string; pdf_path: string | null }[]>`
       select status, pdf_path from invoices where id = ${id}`
-    expect(row!.status).toBe('received')
+    // Upload auto-enqueues the audit (plan T7), so the invoice is now auditing.
+    expect(row!.status).toBe('auditing')
     expect(row!.pdf_path).toBeTruthy()
   })
+})
+
+// Remove invoices this file uploads so the tier is re-runnable without a reset.
+afterAll(async () => {
+  await sql`delete from invoices where invoice_number like 'UP-%'`
 })
 
 describe('loadAuditInput (the audit DB loader, T6)', () => {

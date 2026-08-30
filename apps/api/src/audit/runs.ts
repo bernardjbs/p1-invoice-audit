@@ -1,5 +1,5 @@
 import { sql } from '../db/client'
-import type { CheckResult, Verdict } from './types'
+import type { AuditResult, CheckResult, Verdict } from './types'
 
 /**
  * Persistence for audit runs and their check results — part of the seam (plan
@@ -16,6 +16,28 @@ export type AuditRunView = {
   startedAt: string | null
   finishedAt: string | null
   checks: CheckResult[]
+}
+
+/**
+ * Persist one audit run and its four check results (the worker, T7). Returns the
+ * new run id. Kept behind the seam so the check_results table shape never leaks
+ * into the worker/API. started_at/finished_at are stamped now (a synchronous
+ * mock run); Phase B's async engine can widen this signature.
+ */
+export async function persistAuditRun(invoiceId: string, result: AuditResult): Promise<string> {
+  return sql.begin(async (tx) => {
+    const [run] = await tx<{ id: string }[]>`
+      insert into audit_runs (invoice_id, engine, started_at, finished_at, overall, variance_pct)
+      values (${invoiceId}, ${result.engine}, now(), now(), ${result.overall}, ${result.variancePct})
+      returning id`
+    const runId = run!.id
+    for (const check of result.checks) {
+      await tx`
+        insert into check_results (audit_run_id, check_type, verdict, evidence)
+        values (${runId}, ${check.type}, ${check.verdict}, ${tx.json(check.evidence)})`
+    }
+    return runId
+  })
 }
 
 /** The latest audit run for an invoice with its four check results, or null. */

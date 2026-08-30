@@ -1,6 +1,7 @@
 import { sql } from '../db/client'
 import { signedPdfUrl, uploadInvoicePdf } from '../lib/storage'
 import { readLatestAuditRun, type AuditRunView } from '../audit/runs'
+import type { InvoiceStatus } from '../db/statuses'
 
 /**
  * Invoice read + create services (plan T6). Thin Hono handlers (CONVENTIONS §5)
@@ -138,6 +139,11 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<string> 
             ${input.subtotalAud}, ${input.gstAud}, ${input.totalAud}, 'received', ${pdfPath})
     returning id`
   return row!.id
+}
+
+/** Set an invoice's workflow status. */
+export async function setInvoiceStatus(id: string, status: InvoiceStatus): Promise<void> {
+  await sql`update invoices set status = ${status} where id = ${id}`
 }
 
 export async function listVendors(): Promise<{ id: string; name: string; abn: string | null; isApproved: boolean }[]> {

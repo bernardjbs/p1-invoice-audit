@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "seed": "bun run src/db/seed.ts && bun run scripts/generate-invoice-pdfs.ts",
+    "worker": "bun run src/worker.ts",
     "build": "tsc --noEmit"
   },
   "dependencies": {
