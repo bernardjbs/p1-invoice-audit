@@ -4,6 +4,9 @@
   "workspaces": {
     "": {
       "name": "portfolio-starter",
+      "dependencies": {
+        "hono": "^4.13.5",
+      },
       "devDependencies": {
         "@eslint/js": "^10",
         "@playwright/test": "^1.62.1",

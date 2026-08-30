@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
+import { internalRoutes } from './internal/routes'
 import { invoicesRoutes } from './invoices/routes'
 import { reviewRoutes } from './review/routes'
 import { vendorsRoutes } from './vendors/routes'
@@ -15,6 +16,7 @@ export const app = new Hono()
   .route('/api', invoicesRoutes)
   .route('/api', vendorsRoutes)
   .route('/api', reviewRoutes)
+  .route('/api', internalRoutes)
 
 // Central error handler (CONVENTIONS §8): known errors keep their status; the
 // rest become a generic 500 with the real error logged server-side only.

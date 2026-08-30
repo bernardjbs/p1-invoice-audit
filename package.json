@@ -7,13 +7,17 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "bun run --filter '*' typecheck",
+    "typecheck": "bun run --filter '*' typecheck && bun run typecheck:ops",
+    "typecheck:ops": "tsc -p tsconfig.ops.json",
     "test": "bun run --filter '*' test",
     "test:integration": "bun run --filter '@starter/api' test:integration",
     "seed": "bun run --filter '@starter/api' seed",
     "build": "bun run --filter '*' build",
     "e2e": "playwright test",
     "e2e:stub": "AUDIT_ENGINE=stub playwright test --grep @swap"
+  },
+  "dependencies": {
+    "hono": "^4.13.5"
   },
   "devDependencies": {
     "@eslint/js": "^10",

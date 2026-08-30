@@ -10,4 +10,16 @@ import postgres from 'postgres'
 const DATABASE_URL =
   process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 
-export const sql = postgres(DATABASE_URL)
+/**
+ * On Vercel (`process.env.VERCEL` is set at build + runtime) the API talks to
+ * Supabase through the connection pooler, so it needs pgbouncer-safe options:
+ * transaction-mode pooling has no prepared statements (`prepare: false`, required
+ * on port 6543 and harmless on the session pooler), and the idle/lifetime caps
+ * stop a warm function from pinning a pooler slot. Local dev/tests keep
+ * postgres.js defaults so nothing there changes. (T14 — verified against the
+ * postgres.js README + Supabase pooler docs.)
+ */
+const serverless = Boolean(process.env.VERCEL)
+export const sql = serverless
+  ? postgres(DATABASE_URL, { prepare: false, idle_timeout: 20, max_lifetime: 60 * 30, max: 1 })
+  : postgres(DATABASE_URL)
