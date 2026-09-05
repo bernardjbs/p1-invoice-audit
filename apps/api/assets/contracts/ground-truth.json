@@ -1,0 +1,259 @@
+{
+  "note": "Answer key for the synthetic contract corpus. Generated — do not hand-edit; regenerate with `bun run contracts:generate`.",
+  "vendors": [
+    {
+      "vendorIndex": 0,
+      "name": "Pilbara Pumps Pty Ltd",
+      "msaRef": "MSA-1000",
+      "slug": "pilbara-pumps-pty-ltd",
+      "clauses": [
+        {
+          "sourceRef": "MSA-1000 §1",
+          "section": 1,
+          "heading": "Term and Scope",
+          "text": "This Master Services Agreement (MSA-1000) governs all goods and services supplied by Pilbara Pumps Pty Ltd (\"the Supplier\") to the Principal. It commences on 1 July 2025 and continues until 30 June 2027 unless terminated earlier in accordance with clause 8."
+        },
+        {
+          "sourceRef": "MSA-1000 §2",
+          "section": 2,
+          "heading": "Payment Terms",
+          "text": "The Principal shall pay each correctly rendered tax invoice within 30 days of the invoice date. An invoice is correctly rendered only if it states the purchase order number, the Supplier's ABN, and a separate line for GST."
+        },
+        {
+          "sourceRef": "MSA-1000 §3",
+          "section": 3,
+          "heading": "Goods and Services Tax",
+          "text": "All prices are exclusive of GST. GST shall be shown as a separate amount equal to ten per cent (10%) of the invoice subtotal. The invoice total must equal the subtotal plus GST, and the subtotal must equal the sum of all line items."
+        },
+        {
+          "sourceRef": "MSA-1000 §4",
+          "section": 4,
+          "heading": "Purchase Orders Required",
+          "text": "No goods or services shall be supplied except against a valid purchase order issued by the Principal before supply. The invoiced total must not exceed the total of the purchase order against which it is rendered. Work performed without a purchase order is not payable."
+        },
+        {
+          "sourceRef": "MSA-1000 §5",
+          "section": 5,
+          "heading": "Rates and Variations",
+          "text": "Rates are those set out in the agreed rate card and are fixed for the term. The Supplier shall not invoice any item at a rate exceeding the agreed rate by more than 5% without a written variation signed by both parties. Any amount invoiced above that threshold is not payable."
+        },
+        {
+          "sourceRef": "MSA-1000 §6",
+          "section": 6,
+          "heading": "Hours of Work and Surcharges",
+          "text": "Standard hours are 6:00am to 6:00pm Monday to Friday. No surcharge, loading, penalty or call-out fee shall apply in respect of works performed outside standard hours, including weekends and public holidays, unless expressly approved in writing in advance."
+        },
+        {
+          "sourceRef": "MSA-1000 §7",
+          "section": 7,
+          "heading": "Insurance and Compliance",
+          "text": "The Supplier shall maintain public liability insurance of not less than $20,000,000 and workers compensation insurance as required by law, and shall provide certificates of currency on request."
+        },
+        {
+          "sourceRef": "MSA-1000 §8",
+          "section": 8,
+          "heading": "Termination",
+          "text": "Either party may terminate this agreement for convenience on sixty (60) days written notice, or immediately for material breach that remains unremedied fourteen (14) days after written notice of the breach."
+        }
+      ]
+    },
+    {
+      "vendorIndex": 1,
+      "name": "Kalgoorlie Valves & Fittings Pty Ltd",
+      "msaRef": "MSA-1001",
+      "slug": "kalgoorlie-valves-and-fittings-pty-ltd",
+      "clauses": [
+        {
+          "sourceRef": "MSA-1001 §1",
+          "section": 1,
+          "heading": "Term and Scope",
+          "text": "This Master Services Agreement (MSA-1001) governs all goods and services supplied by Kalgoorlie Valves & Fittings Pty Ltd (\"the Supplier\") to the Principal. It commences on 1 July 2025 and continues until 30 June 2027 unless terminated earlier in accordance with clause 8."
+        },
+        {
+          "sourceRef": "MSA-1001 §2",
+          "section": 2,
+          "heading": "Payment Terms",
+          "text": "The Principal shall pay each correctly rendered tax invoice within 30 days of the invoice date. An invoice is correctly rendered only if it states the purchase order number, the Supplier's ABN, and a separate line for GST."
+        },
+        {
+          "sourceRef": "MSA-1001 §3",
+          "section": 3,
+          "heading": "Goods and Services Tax",
+          "text": "All prices are exclusive of GST. GST shall be shown as a separate amount equal to ten per cent (10%) of the invoice subtotal. The invoice total must equal the subtotal plus GST, and the subtotal must equal the sum of all line items."
+        },
+        {
+          "sourceRef": "MSA-1001 §4",
+          "section": 4,
+          "heading": "Purchase Orders Required",
+          "text": "No goods or services shall be supplied except against a valid purchase order issued by the Principal before supply. The invoiced total must not exceed the total of the purchase order against which it is rendered. Work performed without a purchase order is not payable."
+        },
+        {
+          "sourceRef": "MSA-1001 §5",
+          "section": 5,
+          "heading": "Rates and Variations",
+          "text": "Rates are those set out in the agreed rate card and are fixed for the term. The Supplier shall not invoice any item at a rate exceeding the agreed rate by more than 5% without a written variation signed by both parties. Any amount invoiced above that threshold is not payable."
+        },
+        {
+          "sourceRef": "MSA-1001 §6",
+          "section": 6,
+          "heading": "Hours of Work and Surcharges",
+          "text": "Standard hours are 6:00am to 6:00pm Monday to Friday. No surcharge, loading, penalty or call-out fee shall apply in respect of works performed outside standard hours, including weekends and public holidays, unless expressly approved in writing in advance."
+        },
+        {
+          "sourceRef": "MSA-1001 §7",
+          "section": 7,
+          "heading": "Insurance and Compliance",
+          "text": "The Supplier shall maintain public liability insurance of not less than $20,000,000 and workers compensation insurance as required by law, and shall provide certificates of currency on request."
+        },
+        {
+          "sourceRef": "MSA-1001 §8",
+          "section": 8,
+          "heading": "Termination",
+          "text": "Either party may terminate this agreement for convenience on sixty (60) days written notice, or immediately for material breach that remains unremedied fourteen (14) days after written notice of the breach."
+        }
+      ]
+    },
+    {
+      "vendorIndex": 2,
+      "name": "Hedland Heavy Haulage Pty Ltd",
+      "msaRef": "MSA-1002",
+      "slug": "hedland-heavy-haulage-pty-ltd",
+      "clauses": [
+        {
+          "sourceRef": "MSA-1002 §1",
+          "section": 1,
+          "heading": "Term and Scope",
+          "text": "This Master Services Agreement (MSA-1002) governs all goods and services supplied by Hedland Heavy Haulage Pty Ltd (\"the Supplier\") to the Principal. It commences on 1 July 2025 and continues until 30 June 2027 unless terminated earlier in accordance with clause 8."
+        },
+        {
+          "sourceRef": "MSA-1002 §2",
+          "section": 2,
+          "heading": "Payment Terms",
+          "text": "The Principal shall pay each correctly rendered tax invoice within 45 days of the invoice date. An invoice is correctly rendered only if it states the purchase order number, the Supplier's ABN, and a separate line for GST."
+        },
+        {
+          "sourceRef": "MSA-1002 §3",
+          "section": 3,
+          "heading": "Goods and Services Tax",
+          "text": "All prices are exclusive of GST. GST shall be shown as a separate amount equal to ten per cent (10%) of the invoice subtotal. The invoice total must equal the subtotal plus GST, and the subtotal must equal the sum of all line items."
+        },
+        {
+          "sourceRef": "MSA-1002 §4",
+          "section": 4,
+          "heading": "Purchase Orders Required",
+          "text": "No goods or services shall be supplied except against a valid purchase order issued by the Principal before supply. The invoiced total must not exceed the total of the purchase order against which it is rendered. Work performed without a purchase order is not payable."
+        },
+        {
+          "sourceRef": "MSA-1002 §5",
+          "section": 5,
+          "heading": "Rates and Variations",
+          "text": "Rates are those set out in the agreed rate card and are fixed for the term. The Supplier shall not invoice any item at a rate exceeding the agreed rate by more than 7.5% without a written variation signed by both parties. Any amount invoiced above that threshold is not payable."
+        },
+        {
+          "sourceRef": "MSA-1002 §6",
+          "section": 6,
+          "heading": "Hours of Work and Surcharges",
+          "text": "Standard hours are 6:00am to 6:00pm Monday to Friday. No surcharge, loading, penalty or call-out fee shall apply in respect of works performed outside standard hours, including weekends and public holidays, unless expressly approved in writing in advance."
+        },
+        {
+          "sourceRef": "MSA-1002 §7",
+          "section": 7,
+          "heading": "Insurance and Compliance",
+          "text": "The Supplier shall maintain public liability insurance of not less than $20,000,000 and workers compensation insurance as required by law, and shall provide certificates of currency on request."
+        },
+        {
+          "sourceRef": "MSA-1002 §8",
+          "section": 8,
+          "heading": "Termination",
+          "text": "Either party may terminate this agreement for convenience on sixty (60) days written notice, or immediately for material breach that remains unremedied fourteen (14) days after written notice of the breach."
+        }
+      ]
+    },
+    {
+      "vendorIndex": 3,
+      "name": "Goldfields Fasteners Pty Ltd",
+      "msaRef": "MSA-1003",
+      "slug": "goldfields-fasteners-pty-ltd",
+      "clauses": [
+        {
+          "sourceRef": "MSA-1003 §1",
+          "section": 1,
+          "heading": "Term and Scope",
+          "text": "This Master Services Agreement (MSA-1003) governs all goods and services supplied by Goldfields Fasteners Pty Ltd (\"the Supplier\") to the Principal. It commences on 1 July 2025 and continues until 30 June 2027 unless terminated earlier in accordance with clause 8."
+        },
+        {
+          "sourceRef": "MSA-1003 §2",
+          "section": 2,
+          "heading": "Payment Terms",
+          "text": "The Principal shall pay each correctly rendered tax invoice within 30 days of the invoice date. An invoice is correctly rendered only if it states the purchase order number, the Supplier's ABN, and a separate line for GST."
+        },
+        {
+          "sourceRef": "MSA-1003 §3",
+          "section": 3,
+          "heading": "Goods and Services Tax",
+          "text": "All prices are exclusive of GST. GST shall be shown as a separate amount equal to ten per cent (10%) of the invoice subtotal. The invoice total must equal the subtotal plus GST, and the subtotal must equal the sum of all line items."
+        },
+        {
+          "sourceRef": "MSA-1003 §4",
+          "section": 4,
+          "heading": "Purchase Orders Required",
+          "text": "No goods or services shall be supplied except against a valid purchase order issued by the Principal before supply. The invoiced total must not exceed the total of the purchase order against which it is rendered. Work performed without a purchase order is not payable."
+        },
+        {
+          "sourceRef": "MSA-1003 §5",
+          "section": 5,
+          "heading": "Rates and Variations",
+          "text": "Rates are those set out in the agreed rate card and are fixed for the term. The Supplier shall not invoice any item at a rate exceeding the agreed rate by more than 5% without a written variation signed by both parties. Any amount invoiced above that threshold is not payable."
+        },
+        {
+          "sourceRef": "MSA-1003 §6",
+          "section": 6,
+          "heading": "Hours of Work and Surcharges",
+          "text": "Standard hours are 6:00am to 6:00pm Monday to Friday. No surcharge, loading, penalty or call-out fee shall apply in respect of works performed outside standard hours, including weekends and public holidays, unless expressly approved in writing in advance."
+        },
+        {
+          "sourceRef": "MSA-1003 §7",
+          "section": 7,
+          "heading": "Insurance and Compliance",
+          "text": "The Supplier shall maintain public liability insurance of not less than $20,000,000 and workers compensation insurance as required by law, and shall provide certificates of currency on request."
+        },
+        {
+          "sourceRef": "MSA-1003 §8",
+          "section": 8,
+          "heading": "Termination",
+          "text": "Either party may terminate this agreement for convenience on sixty (60) days written notice, or immediately for material breach that remains unremedied fourteen (14) days after written notice of the breach."
+        }
+      ]
+    }
+  ],
+  "violations": [
+    {
+      "invoiceNumber": "INV-0016",
+      "msaRef": "MSA-1000",
+      "sourceRef": "MSA-1000 §5",
+      "clauseSection": 5,
+      "breach": "Pump billed 20% above the agreed rate card, exceeding the 5% variation cap."
+    },
+    {
+      "invoiceNumber": "INV-0017",
+      "msaRef": "MSA-1001",
+      "sourceRef": "MSA-1001 §5",
+      "clauseSection": 5,
+      "breach": "Valves billed 10% above the agreed rate card, exceeding the 5% variation cap."
+    },
+    {
+      "invoiceNumber": "INV-0018",
+      "msaRef": "MSA-1002",
+      "sourceRef": "MSA-1002 §3",
+      "clauseSection": 3,
+      "breach": "Stated subtotal does not equal the sum of the line items."
+    },
+    {
+      "invoiceNumber": "INV-0019",
+      "msaRef": "MSA-1003",
+      "sourceRef": "MSA-1003 §4",
+      "clauseSection": 4,
+      "breach": "Invoice total does not match the purchase order it was rendered against."
+    }
+  ]
+}

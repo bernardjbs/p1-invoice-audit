@@ -1,0 +1,488 @@
+{
+  "note": "Answer key for invoice extraction, derived from the seeded database. Generated — do not hand-edit; regenerate with `bun run invoices:truth`.",
+  "invoices": [
+    {
+      "invoiceNumber": "INV-0001",
+      "vendorName": "Pilbara Pumps Pty Ltd",
+      "abn": "51000000680",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2001",
+      "msaRef": "MSA-1000",
+      "subtotalAud": 6000,
+      "gstAud": 600,
+      "totalAud": 6600,
+      "lines": [
+        {
+          "itemCode": "PUMP-100",
+          "description": "Centrifugal slurry pump",
+          "qty": 1,
+          "unitPriceAud": 5000,
+          "lineTotalAud": 5000
+        },
+        {
+          "itemCode": "VALVE-050",
+          "description": "Ball valve DN50",
+          "qty": 4,
+          "unitPriceAud": 250,
+          "lineTotalAud": 1000
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0002",
+      "vendorName": "Kalgoorlie Valves & Fittings Pty Ltd",
+      "abn": "51000001490",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2002",
+      "msaRef": "MSA-1001",
+      "subtotalAud": 2500,
+      "gstAud": 250,
+      "totalAud": 2750,
+      "lines": [
+        {
+          "itemCode": "VALVE-050",
+          "description": "Ball valve DN50",
+          "qty": 10,
+          "unitPriceAud": 250,
+          "lineTotalAud": 2500
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0003",
+      "vendorName": "Hedland Heavy Haulage Pty Ltd",
+      "abn": "51000002381",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2003",
+      "msaRef": "MSA-1002",
+      "subtotalAud": 3360,
+      "gstAud": 336,
+      "totalAud": 3696,
+      "lines": [
+        {
+          "itemCode": "FILTER-010",
+          "description": "Filter cartridge",
+          "qty": 12,
+          "unitPriceAud": 80,
+          "lineTotalAud": 960
+        },
+        {
+          "itemCode": "PIPE-025",
+          "description": "Steel pipe, 25 m length",
+          "qty": 6,
+          "unitPriceAud": 400,
+          "lineTotalAud": 2400
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0004",
+      "vendorName": "Goldfields Fasteners Pty Ltd",
+      "abn": "51000003191",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2004",
+      "msaRef": "MSA-1003",
+      "subtotalAud": 4800,
+      "gstAud": 480,
+      "totalAud": 5280,
+      "lines": [
+        {
+          "itemCode": "LABOUR-HR",
+          "description": "Site labour",
+          "qty": 40,
+          "unitPriceAud": 120,
+          "lineTotalAud": 4800
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0005",
+      "vendorName": "Pilbara Pumps Pty Ltd",
+      "abn": "51000000680",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2005",
+      "msaRef": "MSA-1000",
+      "subtotalAud": 2500,
+      "gstAud": 250,
+      "totalAud": 2750,
+      "lines": [
+        {
+          "itemCode": "FILTER-010",
+          "description": "Filter cartridge",
+          "qty": 25,
+          "unitPriceAud": 80,
+          "lineTotalAud": 2000
+        },
+        {
+          "itemCode": "VALVE-050",
+          "description": "Ball valve DN50",
+          "qty": 2,
+          "unitPriceAud": 250,
+          "lineTotalAud": 500
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0006",
+      "vendorName": "Kalgoorlie Valves & Fittings Pty Ltd",
+      "abn": "51000001490",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2006",
+      "msaRef": "MSA-1001",
+      "subtotalAud": 6000,
+      "gstAud": 600,
+      "totalAud": 6600,
+      "lines": [
+        {
+          "itemCode": "PUMP-100",
+          "description": "Centrifugal slurry pump",
+          "qty": 1,
+          "unitPriceAud": 5000,
+          "lineTotalAud": 5000
+        },
+        {
+          "itemCode": "VALVE-050",
+          "description": "Ball valve DN50",
+          "qty": 4,
+          "unitPriceAud": 250,
+          "lineTotalAud": 1000
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0007",
+      "vendorName": "Hedland Heavy Haulage Pty Ltd",
+      "abn": "51000002381",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2007",
+      "msaRef": "MSA-1002",
+      "subtotalAud": 2500,
+      "gstAud": 250,
+      "totalAud": 2750,
+      "lines": [
+        {
+          "itemCode": "VALVE-050",
+          "description": "Ball valve DN50",
+          "qty": 10,
+          "unitPriceAud": 250,
+          "lineTotalAud": 2500
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0008",
+      "vendorName": "Goldfields Fasteners Pty Ltd",
+      "abn": "51000003191",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2008",
+      "msaRef": "MSA-1003",
+      "subtotalAud": 3360,
+      "gstAud": 336,
+      "totalAud": 3696,
+      "lines": [
+        {
+          "itemCode": "FILTER-010",
+          "description": "Filter cartridge",
+          "qty": 12,
+          "unitPriceAud": 80,
+          "lineTotalAud": 960
+        },
+        {
+          "itemCode": "PIPE-025",
+          "description": "Steel pipe, 25 m length",
+          "qty": 6,
+          "unitPriceAud": 400,
+          "lineTotalAud": 2400
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0009",
+      "vendorName": "Pilbara Pumps Pty Ltd",
+      "abn": "51000000680",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2009",
+      "msaRef": "MSA-1000",
+      "subtotalAud": 4800,
+      "gstAud": 480,
+      "totalAud": 5280,
+      "lines": [
+        {
+          "itemCode": "LABOUR-HR",
+          "description": "Site labour",
+          "qty": 40,
+          "unitPriceAud": 120,
+          "lineTotalAud": 4800
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0010",
+      "vendorName": "Kalgoorlie Valves & Fittings Pty Ltd",
+      "abn": "51000001490",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2010",
+      "msaRef": "MSA-1001",
+      "subtotalAud": 2500,
+      "gstAud": 250,
+      "totalAud": 2750,
+      "lines": [
+        {
+          "itemCode": "FILTER-010",
+          "description": "Filter cartridge",
+          "qty": 25,
+          "unitPriceAud": 80,
+          "lineTotalAud": 2000
+        },
+        {
+          "itemCode": "VALVE-050",
+          "description": "Ball valve DN50",
+          "qty": 2,
+          "unitPriceAud": 250,
+          "lineTotalAud": 500
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0011",
+      "vendorName": "Hedland Heavy Haulage Pty Ltd",
+      "abn": "51000002381",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2011",
+      "msaRef": "MSA-1002",
+      "subtotalAud": 6000,
+      "gstAud": 600,
+      "totalAud": 6600,
+      "lines": [
+        {
+          "itemCode": "PUMP-100",
+          "description": "Centrifugal slurry pump",
+          "qty": 1,
+          "unitPriceAud": 5000,
+          "lineTotalAud": 5000
+        },
+        {
+          "itemCode": "VALVE-050",
+          "description": "Ball valve DN50",
+          "qty": 4,
+          "unitPriceAud": 250,
+          "lineTotalAud": 1000
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0012",
+      "vendorName": "Goldfields Fasteners Pty Ltd",
+      "abn": "51000003191",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2012",
+      "msaRef": "MSA-1003",
+      "subtotalAud": 2500,
+      "gstAud": 250,
+      "totalAud": 2750,
+      "lines": [
+        {
+          "itemCode": "VALVE-050",
+          "description": "Ball valve DN50",
+          "qty": 10,
+          "unitPriceAud": 250,
+          "lineTotalAud": 2500
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0013",
+      "vendorName": "Pilbara Pumps Pty Ltd",
+      "abn": "51000000680",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2013",
+      "msaRef": "MSA-1000",
+      "subtotalAud": 3360,
+      "gstAud": 336,
+      "totalAud": 3696,
+      "lines": [
+        {
+          "itemCode": "FILTER-010",
+          "description": "Filter cartridge",
+          "qty": 12,
+          "unitPriceAud": 80,
+          "lineTotalAud": 960
+        },
+        {
+          "itemCode": "PIPE-025",
+          "description": "Steel pipe, 25 m length",
+          "qty": 6,
+          "unitPriceAud": 400,
+          "lineTotalAud": 2400
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0014",
+      "vendorName": "Kalgoorlie Valves & Fittings Pty Ltd",
+      "abn": "51000001490",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2014",
+      "msaRef": "MSA-1001",
+      "subtotalAud": 4800,
+      "gstAud": 480,
+      "totalAud": 5280,
+      "lines": [
+        {
+          "itemCode": "LABOUR-HR",
+          "description": "Site labour",
+          "qty": 40,
+          "unitPriceAud": 120,
+          "lineTotalAud": 4800
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0015",
+      "vendorName": "Hedland Heavy Haulage Pty Ltd",
+      "abn": "51000002381",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2015",
+      "msaRef": "MSA-1002",
+      "subtotalAud": 2500,
+      "gstAud": 250,
+      "totalAud": 2750,
+      "lines": [
+        {
+          "itemCode": "FILTER-010",
+          "description": "Filter cartridge",
+          "qty": 25,
+          "unitPriceAud": 80,
+          "lineTotalAud": 2000
+        },
+        {
+          "itemCode": "VALVE-050",
+          "description": "Ball valve DN50",
+          "qty": 2,
+          "unitPriceAud": 250,
+          "lineTotalAud": 500
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0016",
+      "vendorName": "Pilbara Pumps Pty Ltd",
+      "abn": "51000000680",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2016",
+      "msaRef": "MSA-1000",
+      "subtotalAud": 6000,
+      "gstAud": 600,
+      "totalAud": 6600,
+      "lines": [
+        {
+          "itemCode": "PUMP-100",
+          "description": "Centrifugal slurry pump",
+          "qty": 1,
+          "unitPriceAud": 6000,
+          "lineTotalAud": 6000
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0017",
+      "vendorName": "Kalgoorlie Valves & Fittings Pty Ltd",
+      "abn": "51000001490",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2017",
+      "msaRef": "MSA-1001",
+      "subtotalAud": 2200,
+      "gstAud": 220,
+      "totalAud": 2420,
+      "lines": [
+        {
+          "itemCode": "VALVE-050",
+          "description": "Ball valve DN50",
+          "qty": 8,
+          "unitPriceAud": 275,
+          "lineTotalAud": 2200
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0018",
+      "vendorName": "Hedland Heavy Haulage Pty Ltd",
+      "abn": "51000002381",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2018",
+      "msaRef": "MSA-1002",
+      "subtotalAud": 2100,
+      "gstAud": 210,
+      "totalAud": 2310,
+      "lines": [
+        {
+          "itemCode": "PIPE-025",
+          "description": "Steel pipe, 25 m length",
+          "qty": 5,
+          "unitPriceAud": 400,
+          "lineTotalAud": 2000
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0019",
+      "vendorName": "Goldfields Fasteners Pty Ltd",
+      "abn": "51000003191",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2019",
+      "msaRef": "MSA-1003",
+      "subtotalAud": 2400,
+      "gstAud": 240,
+      "totalAud": 2640,
+      "lines": [
+        {
+          "itemCode": "LABOUR-HR",
+          "description": "Site labour",
+          "qty": 20,
+          "unitPriceAud": 120,
+          "lineTotalAud": 2400
+        }
+      ]
+    },
+    {
+      "invoiceNumber": "INV-0020",
+      "vendorName": "Dodgy Diggers Supplies Pty Ltd",
+      "abn": "51000005022",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2020",
+      "msaRef": null,
+      "subtotalAud": 800,
+      "gstAud": 80,
+      "totalAud": 880,
+      "lines": [
+        {
+          "itemCode": "FILTER-010",
+          "description": "Filter cartridge",
+          "qty": 10,
+          "unitPriceAud": 80,
+          "lineTotalAud": 800
+        }
+      ]
+    }
+  ]
+}

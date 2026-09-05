@@ -9,9 +9,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "seed": "bun run src/db/seed.ts && bun run scripts/generate-invoice-pdfs.ts",
+    "seed": "bun run src/db/seed.ts && bun run scripts/generate-invoice-pdfs.ts && bun run scripts/embed-contract-docs.ts && bun run scripts/generate-invoice-truth.ts",
+    "contracts:generate": "bun run scripts/generate-contract-docs.ts",
     "worker": "bun run src/worker.ts",
-    "build": "tsc --noEmit"
+    "build": "tsc --noEmit",
+    "invoices:truth": "bun run scripts/generate-invoice-truth.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",

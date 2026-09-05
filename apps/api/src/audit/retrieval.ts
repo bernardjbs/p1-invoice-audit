@@ -101,3 +101,43 @@ export async function retrieveRelevantContext(
     score: Number(row.score),
   }))
 }
+
+/** One clause on its way into the store. */
+export type ChunkInput = {
+  contractId: string
+  vendorId: string
+  sourceRef: string
+  content: string
+}
+
+/**
+ * Embed and store clauses. Lives beside the read path on purpose: both sides
+ * know the table's shape and the embedding width, so a change to either is one
+ * file, not two that can drift.
+ *
+ * Upserts on (contract, citation) — the table refuses duplicates, and re-running
+ * the loader on its own (to avoid paying to re-embed everything) must be safe
+ * rather than an error.
+ */
+export async function upsertContractChunks(
+  chunks: ChunkInput[],
+  opts?: { embedder?: QueryEmbedder },
+): Promise<number> {
+  if (chunks.length === 0) return 0
+  const embedder = opts?.embedder ?? (await defaultEmbedder())
+
+  // Sequential rather than Promise.all: this runs in a seed script, and a burst
+  // of parallel embedding calls is the easiest way to hit a rate limit.
+  let written = 0
+  for (const chunk of chunks) {
+    const embedding = JSON.stringify(await embedder.embedQuery(chunk.content))
+    await sql`
+      insert into contract_chunks (contract_id, vendor_id, source_ref, content, embedding)
+      values (${chunk.contractId}, ${chunk.vendorId}, ${chunk.sourceRef}, ${chunk.content},
+              ${embedding}::vector)
+      on conflict (contract_id, source_ref) do update
+        set content = excluded.content, embedding = excluded.embedding`
+    written += 1
+  }
+  return written
+}
