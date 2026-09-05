@@ -4,13 +4,14 @@ import { describe, expect, it } from 'vitest'
 import { serverEnv } from '../../../config/env'
 
 /**
- * Hello-graph smoke (plan T1). The smallest thing that proves the LangGraph
- * machinery works end to end on this machine: define state, run two nodes,
- * compile, invoke, get a real reply from Claude back.
+ * Hello-graph smoke. Plan: 2026-09-04-p1-phase-b-langgraph-engine, task T1.
+ *
+ * The smallest thing that proves the LangGraph machinery works end to end on this
+ * machine: define state, run two nodes, compile, invoke, get a real reply back.
  *
  * It deliberately audits nothing. Its job is to fail LOUDLY and early if the
  * plumbing is wrong — missing key, wrong model id, bad Doppler config — so that
- * when the real four-check graph lands in T7 the plumbing is already ruled out.
+ * when the real four-check graph lands the plumbing is already ruled out.
  *
  * Integration tier: needs live credentials, so it runs under
  * `doppler run -c dev -- …` and is excluded from the default unit tier.

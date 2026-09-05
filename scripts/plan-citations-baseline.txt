@@ -1,0 +1,51 @@
+apps/api/scripts/generate-invoice-pdfs.ts	* Generate a PDF for every seeded invoice (plan T4, criterion 3), upload it to
+apps/api/src/audit/data.ts	* Assembles an engine's input for one invoice from the database (plan T6).
+apps/api/src/audit/data.ts	// LEFT joins: an uploaded invoice may have no PO/contract yet (plan T6/T11),
+apps/api/src/audit/engine.test.ts	* Contract test for the audit seam (plan T5, criterion 6). It pins the LOCKED
+apps/api/src/audit/engine.test.ts	* standalone while T2/T3 build the DB in parallel.
+apps/api/src/audit/engine.ts	* AuditResult for a real invoice (plan T5, criterion 6) — the API and worker
+apps/api/src/audit/engine.ts	* loader defaults to the database (T6) but is injectable so callers and tests
+apps/api/src/audit/engines/stub.ts	* seals (plan T5, criterion 7): swapping the engine changes nothing but this
+apps/api/src/audit/runs.ts	* leaks check logic into the API or web layers. The worker (T7) writes via
+apps/api/src/audit/runs.ts	* Persist one audit run and its four check results (the worker, T7). Returns the
+apps/api/src/audit/runs.ts	* T5/T6). The `check_type`/`CheckResult` vocabulary lives ONLY here and in the
+apps/api/src/audit/types.ts	* (the DB loader in T6). Keeping the engines pure over this — rather than
+apps/api/src/audit/types.ts	* The LOCKED audit-result shape (plan T5, criterion 6). Every engine — the
+apps/api/src/audit/types.ts	/** A function that assembles an engine's input for one invoice id (DB in T6). */
+apps/api/src/db/client.ts	* (127.0.0.1) and keep postgres.js defaults, so nothing there changes. (T14 —
+apps/api/src/db/seed-pdf.integration.test.ts	* Integrity tests for the generated invoice PDFs (plan T4, criterion 3). Runs
+apps/api/src/db/seed.integration.test.ts	* Integrity tests for the synthetic seed (plan T3, criterion 2). Runs against
+apps/api/src/db/seed.ts	* Synthetic AU/resources seed (plan T3, criterion 2). Deterministic — no
+apps/api/src/db/seed.ts	pdf_path: null, // T4 fills this in.
+apps/api/src/db/statuses.ts	* drive the review workflow (T7/T8). Keep in step with the migration's
+apps/api/src/internal/routes.ts	* Internal worker-drain route (plan T14). On Vercel there is no long-running
+apps/api/src/invoices/routes.integration.test.ts	* API read + upload endpoints (plan T6) + the audit DB loader. Integration tier:
+apps/api/src/invoices/routes.integration.test.ts	// Upload auto-enqueues the audit (plan T7), so the invoice is now auditing.
+apps/api/src/invoices/routes.integration.test.ts	describe('loadAuditInput (the audit DB loader, T6)', () => {
+apps/api/src/invoices/routes.ts	* Invoice HTTP routes (plan T6): list (with status filter), detail, and
+apps/api/src/invoices/routes.ts	// Auto-enqueue the audit on upload and mark it auditing (plan T7).
+apps/api/src/invoices/service.ts	* Invoice read + create services (plan T6). Thin Hono handlers (CONVENTIONS §5)
+apps/api/src/queue/audit-queue.ts	* The audit-job queue seam (plan T7, CONVENTIONS §22). All pgmq access goes
+apps/api/src/review/routes.integration.test.ts	* Review endpoints — HITL as a status-flag flow (plan T8, criterion 5).
+apps/api/src/review/routes.ts	* Review routes (plan T8): the paused-review queue and the approve/reject
+apps/api/src/review/service.ts	* Review services (plan T8) — HITL as a status-flag flow. The queue is the set
+apps/api/src/vendors/routes.ts	/** Vendor routes (plan T6). Mounted under /api by app.ts. */
+apps/api/src/worker.integration.test.ts	* Queue-driven audit worker (plan T7, criterion 4 at API level). Integration
+apps/api/src/worker.ts	* `bun run worker`; in prod a pg_cron consumer drives the same processing (T14,
+apps/api/src/worker.ts	* The background audit worker (plan T7). In dev it long-polls the pgmq queue via
+apps/api/src/worker.ts	// anything else pauses for human review (plan T7).
+apps/web/src/app/root-layout.tsx	/** App shell: top nav + routed content (plan T9). */
+apps/web/src/app/router.tsx	* T9–T12 each add/replace a page here; the tree is the one shared file, so the
+apps/web/src/features/invoices/api.ts	// refresh (plan T11).
+apps/web/src/features/invoices/check-results.tsx	/** One audit check rendered with its verdict and evidence (plan T10). */
+apps/web/src/features/invoices/search.ts	/** Typed search params for the invoice list route (plan T10 — status filter). */
+apps/web/src/features/invoices/upload-page.tsx	* Upload an invoice PDF + minimal fields (plan T11). On success we jump to the
+apps/web/src/features/review/api.ts	/** Review-queue server state + the approve/reject mutation (plan T12). */
+scripts/setup-prod-worker.ts	* Provision the prod audit worker (plan T14). On Vercel there is no long-running
+scripts/smoke.ts	* Post-deploy smoke (plan T14, criterion 8): prove the upload → audit → review
+supabase/migrations/20260830020404_create_audit_schema.sql	-- P1 invoice-audit schema (plan T2). All money is numeric(12,2), currency implicit
+supabase/migrations/20260830020404_create_audit_schema.sql	-- Private storage bucket for generated invoice PDFs (T4 writes into it).
+supabase/migrations/20260830020404_create_audit_schema.sql	-- The queue itself and the cron consumer are wired in T7 (see docs/pgmq-spike.md);
+supabase/migrations/20260830020404_create_audit_schema.sql	-- Vendors (suppliers). ABN is a synthetic 11-char checksum-valid value (T3).
+supabase/migrations/20260830040518_create_audit_queue.sql	-- prod drives it with a pg_cron consumer (plan T14, per docs/pgmq-spike.md).
+supabase/migrations/20260830040518_create_audit_queue.sql	-- The background-audit queue (plan T7, CONVENTIONS §22). The pgmq extension is

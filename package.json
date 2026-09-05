@@ -4,7 +4,8 @@
   "type": "module",
   "workspaces": ["apps/*"],
   "scripts": {
-    "lint": "eslint .",
+    "lint": "eslint . && bun run lint:citations",
+    "lint:citations": "bash scripts/check-plan-citations.sh",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "bun run --filter '*' typecheck && bun run typecheck:ops",

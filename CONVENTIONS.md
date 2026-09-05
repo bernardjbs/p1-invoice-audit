@@ -547,6 +547,17 @@ react-hook-form, Zustand.
 
 ## LOW-priority (pointers, deliberately not full sections)
 - **Comments:** "why, not what"; TSDoc only on exported *package* APIs.
+- **Citing a plan from code — use the dated slug, or say nothing.** Every plan numbers its tasks from
+  T1, so a bare `plan T6` is ambiguous the moment a project has two plans — and this one already does
+  (Phase A and Phase B both have a T2, T5, T6 and T7). The plans also live *outside* the repo, so a
+  reader cannot resolve it. Write `Plan: 2026-09-04-p1-phase-b-langgraph-engine, task T2` when you are
+  citing a **decision** whose reasoning should stay traceable; otherwise drop the reference and keep the
+  *why*, which is the part that survives the plan being archived. **Enforced** by
+  `scripts/check-plan-citations.sh` (runs inside `bun run lint`, so pre-push and CI both catch it): a
+  ratchet over `scripts/plan-citations-baseline.txt`, which grandfathers the 51 pre-existing Phase A
+  references. New ones fail; fixing one means deleting its baseline line, and a stale baseline entry
+  fails too, so the allowance can only shrink. **Undated `plan Tn` in existing code means the Phase A
+  plan** (`2026-08-29-p1-phase-a-app-shell`) — that one line resolves the whole backlog without churn.
 - **Dependencies:** pin; Renovate; prefer existing/stdlib over new deps.
 - **Git/commit conventions:** live in `CONTRIBUTING.md`, not here — cross-reference.
 

@@ -17,14 +17,14 @@ import { z } from 'zod'
  */
 
 const EnvSchema = z.object({
-  /** Claude — PDF field extraction (T4) and the contract-terms agent (T6). */
+  /** Claude — PDF field extraction and the contract-terms agent. */
   ANTHROPIC_API_KEY: z.string().min(1),
-  /** OpenAI — embeddings only (`text-embedding-3-small`), for pgvector retrieval (T2/T3). */
+  /** OpenAI — embeddings only (`text-embedding-3-small`), for pgvector retrieval. */
   OPENAI_API_KEY: z.string().min(1),
 
   /**
-   * LangSmith tracing (T11). Optional until then, and off unless explicitly
-   * enabled — an unset `LANGSMITH_TRACING` must not start billing traces.
+   * LangSmith tracing. Optional until the tracing task lands, and off unless
+   * explicitly enabled — an unset `LANGSMITH_TRACING` must not start billing traces.
    * The endpoint MUST be the APAC host; the US/EU hosts 403 an otherwise valid
    * APAC key, which reads as a bad key rather than a wrong region.
    */
@@ -35,7 +35,7 @@ const EnvSchema = z.object({
     .default('false')
     .transform((v) => v === 'true'),
 
-  /** Slack incoming webhook — the pause-for-review notification (T12). */
+  /** Slack incoming webhook — the pause-for-review notification. */
   SLACK_WEBHOOK_URL: z.url().optional(),
 })
 
