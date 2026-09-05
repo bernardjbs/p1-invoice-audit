@@ -25,6 +25,27 @@ Every project exposes these four, run with Bun locally:
 Gate tiers (per `docs/development-workflow.md` in the build home): pre-push runs the fast tier
 (lint + typecheck + test); CI runs the full tier on Node; post-deploy runs a smoke.
 
+`bun run lint` also runs `scripts/check-plan-citations.sh` — see "Citing a plan from code" in
+`CONVENTIONS.md`. It is a ratchet: new bare `Tn` references fail, the 51 grandfathered ones are
+baselined, and the allowance can only shrink.
+
+**⚠️ Export nvm node 22 before ANY gate, test tier, push or build:**
+
+```
+export PATH="$HOME/.nvm/versions/node/v22.23.2/bin:$PATH"
+```
+
+Under node 20 both test tiers fail, and **neither failure names the environment as the cause** —
+which is what makes this worth a rule rather than a note:
+
+- **Unit tier:** `apps/web/.../check-results.test.tsx` fails to *start* (`ERR_REQUIRE_ESM` in the
+  jsdom chain) and the run reports "3 files passed / 1 error" — reads as almost-green.
+- **Integration tier:** three specs fail because `@supabase/supabase-js` needs Node 22's native
+  WebSocket; it surfaces as **HTTP 500 from the API**, which reads as broken application code.
+
+Verified 2026-09-05 by stashing the session's changes and reproducing identically, so it is
+environmental and pre-existing, not a regression.
+
 ## Runtime — Bun local / Node prod (§29)
 
 Develop, install and test with **Bun** locally. Deploy the Hono API to the **Node** runtime on Vercel
