@@ -31,14 +31,23 @@ Gate tiers (per `docs/development-workflow.md` in the build home): pre-push runs
 `CONVENTIONS.md`. It is a ratchet: new bare `Tn` references fail, the 51 grandfathered ones are
 baselined, and the allowance can only shrink.
 
-**⚠️ Export nvm node 22 before ANY gate, test tier, push or build:**
+**⚠️ Node 22 is required for ANY gate, test tier, push or build.**
 
-```
-export PATH="$HOME/.nvm/versions/node/v22.23.2/bin:$PATH"
-```
+The repo now declares it (`.nvmrc` = `22`, `engines.node` = `>=22`) and the **pre-push hook enforces
+it**: on an older node it exits 1 naming the version and the cause, instead of letting the tiers fail
+misleadingly. Proved both ways 2026-09-06 — node 20 → exit 1, node 22 → exit 0.
 
-Under node 20 both test tiers fail, and **neither failure names the environment as the cause** —
-which is what makes this worth a rule rather than a note:
+- **In an interactive shell:** `nvm use` (reads `.nvmrc`). Bernard's nvm default is already 22, so
+  usually nothing to do — check with `node -v` before assuming you need anything.
+- **In a non-interactive shell** (an agent's `Bash` calls, CI steps, anything that does not source
+  your shell profile): nvm is not loaded, so `node` resolves to 20. Export it explicitly:
+
+  ```
+  export PATH="$HOME/.nvm/versions/node/v22.23.2/bin:$PATH"
+  ```
+
+Why this earns the space — under node 20 both test tiers fail and **neither failure names the
+environment as the cause**:
 
 - **Unit tier:** `apps/web/.../check-results.test.tsx` fails to _start_ (`ERR_REQUIRE_ESM` in the
   jsdom chain) and the run reports "3 files passed / 1 error" — reads as almost-green.

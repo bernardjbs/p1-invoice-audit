@@ -1,6 +1,9 @@
 {
   "name": "p1-invoice-audit",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "type": "module",
   "workspaces": [
     "apps/*"

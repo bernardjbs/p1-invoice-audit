@@ -9,7 +9,27 @@ if ! command -v bun >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "pre-push: running fast gate (lint + typecheck + test)…"
+# Node 22 is REQUIRED, and node 20 does not fail honestly: the unit tier reports
+# "3 files passed / 1 error" (a jsdom ESM chain), and the integration tier throws
+# HTTP 500s that read as broken application code. Both cost an hour of debugging
+# the app for an environment fault, so refuse up front and name the cause. The
+# required version lives in .nvmrc; this reads it rather than hardcoding one.
+REQUIRED_MAJOR="$(tr -d '[:space:]v' < "$(dirname "$0")/../.nvmrc" 2>/dev/null || echo 22)"
+if ! command -v node >/dev/null 2>&1; then
+  echo "pre-push: 'node' not found on PATH — this repo needs node ${REQUIRED_MAJOR}." >&2
+  exit 1
+fi
+ACTUAL_MAJOR="$(node -v | sed 's/^v//; s/\..*//')"
+if [ "$ACTUAL_MAJOR" -lt "$REQUIRED_MAJOR" ]; then
+  echo "pre-push: node $(node -v) is too old — this repo needs node ${REQUIRED_MAJOR}." >&2
+  echo "          Under node 20 BOTH test tiers fail without naming the environment:" >&2
+  echo "          the unit tier reports '3 files passed / 1 error', and the" >&2
+  echo "          integration tier throws HTTP 500s that read as broken app code." >&2
+  echo "          Fix: nvm use   (the repo carries an .nvmrc)" >&2
+  exit 1
+fi
+
+echo "pre-push: running fast gate on node $(node -v) (lint + typecheck + test)…"
 bun run lint
 bun run typecheck
 bun run test
