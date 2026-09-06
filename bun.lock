@@ -33,16 +33,13 @@
         "@langchain/langgraph": "^1.4.14",
         "@langchain/langgraph-checkpoint-postgres": "^1.0.5",
         "@langchain/openai": "^1.5.11",
-        "@langchain/pgvector": "^0.1.0",
         "@supabase/supabase-js": "^2.112.4",
         "hono": "^4.13.5",
-        "pg": "^8.23.0",
         "postgres": "^3.4.9",
         "zod": "^4.5.4",
       },
       "devDependencies": {
         "@types/node": "^26.4.0",
-        "@types/pg": "^8.23.1",
         "playwright": "^1.62.1",
       },
     },
@@ -305,8 +302,6 @@
     "@langchain/langgraph-sdk": ["@langchain/langgraph-sdk@1.10.2", "", { "dependencies": { "@langchain/protocol": "^0.0.19", "@types/json-schema": "^7.0.15", "p-queue": "^9.0.1", "p-retry": "^7.1.1" }, "peerDependencies": { "@langchain/core": "^1.1.48", "react": "^18 || ^19", "react-dom": "^18 || ^19" }, "optionalPeers": ["react", "react-dom"] }, "sha512-86qsfdBZWu1ZgywLN8AThU/jXi9rjPDZPWcTJp4SA1A/L62ypTNoSXbvtiwZt1odokXccYTxK1XWS8tmVdvEmw=="],
 
     "@langchain/openai": ["@langchain/openai@1.5.11", "", { "dependencies": { "js-tiktoken": "^1.0.12", "openai": "^7.5.0", "zod": "^3.25.76 || ^4" }, "peerDependencies": { "@langchain/core": "^1.2.9" } }, "sha512-BvGp5lQk5//0WVwTIepscazFpneT9I9+mc+kp+cLuhGHFb7mc9zGNrusZOXoa3p73SN0i3XqTo8lyIndpVx3Hw=="],
-
-    "@langchain/pgvector": ["@langchain/pgvector@0.1.0", "", { "dependencies": { "pg": "^8.11.0" }, "peerDependencies": { "@langchain/core": "^1.0.0" } }, "sha512-1/3ahOTdYwstTXq7mLZWl1ri6C7RL/vALywieVglBZ1iY8ujH15WvI7Afare/OPbMUOIcL26/KmFs2Sqy9MPYA=="],
 
     "@langchain/protocol": ["@langchain/protocol@0.0.19", "", {}, "sha512-9hKcRrH7cBX6gfutdfXPoft1OCchHe4FEpALoDJMl5Qu+n/YG5ynZmyu8+8cxORlPwHBoKTxggvXz+76M1yX1Q=="],
 
@@ -707,8 +702,6 @@
     "@types/json-schema": ["@types/json-schema@7.0.15", "", {}, "sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA=="],
 
     "@types/node": ["@types/node@26.4.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-faiGnoIrLH/V8cibOMEAZ8pMw6oXqSukl29ra4mN8GdaB2ZewzeaLj+INpV5N+Z1eKWzY+IzaIZH2EIR6YZRNQ=="],
-
-    "@types/pg": ["@types/pg@8.23.1", "", { "dependencies": { "@types/node": "*", "pg-protocol": "*", "pg-types": "^2.2.0" } }, "sha512-fKVHpikPdg4GKks3JuLEhvwSyvwzF23hnabPy6DD8ljVbC7+6J5dQzdv4arV6jqq57djnMgs1HKBxX4P8aBI3A=="],
 
     "@types/react": ["@types/react@19.2.18", "", { "dependencies": { "csstype": "^3.2.2" } }, "sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w=="],
 
