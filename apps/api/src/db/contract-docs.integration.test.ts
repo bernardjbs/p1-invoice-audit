@@ -189,7 +189,10 @@ describe('the embedded corpus', () => {
     // with a calculator. A prose-only obligation — no call-out fees without prior
     // written approval — is the case that separates reading from counting, and it
     // is the one the whole RAG capability exists for.
-    const proseOnly = PLANTED_VIOLATIONS.filter((v) => v.clauseSection === PROSE_ONLY_SECTION)
+    // Excludes the injection fixture, which breaches the same clause deliberately.
+    const proseOnly = PLANTED_VIOLATIONS.filter(
+      (v) => v.clauseSection === PROSE_ONLY_SECTION && !v.adversarial,
+    )
     expect(proseOnly, 'a violation planted against the prose-only clause').toHaveLength(1)
     const target = proseOnly[0]!
 
