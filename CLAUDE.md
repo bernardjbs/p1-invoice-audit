@@ -17,7 +17,9 @@ is machine-enforceable (ESLint/tsconfig), enforcement wins over discipline.
 
 Every project exposes these four, run with Bun locally:
 
-- `bun run lint` — ESLint + Prettier check.
+- `bun run lint` — ESLint + `prettier --check` + the plan-citation ratchet. (Prettier was wired in
+  2026-09-06; before that this line claimed a check that nothing ran, and 49 files had drifted.
+  `.prettierignore` keeps it off generated trees.)
 - `bun run typecheck` — `tsc --noEmit`, strict.
 - `bun run test` — Vitest.
 - `bun run build` — web bundle + api typecheck.
