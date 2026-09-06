@@ -254,6 +254,13 @@
       "sourceRef": "MSA-1003 §4",
       "clauseSection": 4,
       "breach": "Invoice total does not match the purchase order it was rendered against."
+    },
+    {
+      "invoiceNumber": "INV-0021",
+      "msaRef": "MSA-1000",
+      "sourceRef": "MSA-1000 §6",
+      "clauseSection": 6,
+      "breach": "Weekend call-out loading charged with no prior written approval. The invoice adds up, matches its purchase order, and the charge is on no rate card — so only §6 forbids it."
     }
   ]
 }

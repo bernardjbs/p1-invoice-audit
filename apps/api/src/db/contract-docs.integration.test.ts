@@ -1,6 +1,14 @@
 import { afterAll, describe, expect, it } from 'vitest'
+import type { ExtractedInvoice } from '../audit/extraction'
+import { runMathCheck, runPoMatchCheck, runPriceCheck } from '../audit/engines/langgraph/checks'
+import { loadPo, loadRates } from '../audit/engines/langgraph/loaders'
 import { retrieveRelevantContext } from '../audit/retrieval'
-import { CONTRACT_VENDORS, PLANTED_VIOLATIONS, chunksFor } from './contract-docs'
+import {
+  CONTRACT_VENDORS,
+  PLANTED_VIOLATIONS,
+  PROSE_ONLY_SECTION,
+  chunksFor,
+} from './contract-docs'
 import { sql } from './client'
 
 /**
@@ -22,6 +30,53 @@ type ChunkRow = {
   vendor_id: string
   source_ref: string
   content: string
+}
+
+/**
+ * The invoice fields the deterministic checks need, read straight from the rows
+ * rather than from the PDF. The checks are what is under test here, not the
+ * extraction — pulling this through a live model would make a data-integrity
+ * spec depend on a model's reading, which is the wrong thing to gate on.
+ */
+async function loadExtractedForTest(invoiceId: string): Promise<ExtractedInvoice> {
+  const [inv] = await sql<
+    {
+      invoice_number: string
+      abn: string
+      subtotal_aud: string
+      gst_aud: string
+      total_aud: string
+    }[]
+  >`
+    select i.invoice_number, v.abn, i.subtotal_aud::text, i.gst_aud::text, i.total_aud::text
+    from invoices i join vendors v on v.id = i.vendor_id
+    where i.id = ${invoiceId}`
+  const lines = await sql<
+    {
+      item_code: string
+      description: string
+      qty: string
+      unit_price_aud: string
+      line_total_aud: string
+    }[]
+  >`
+    select item_code, description, qty::text, unit_price_aud::text, line_total_aud::text
+    from invoice_lines where invoice_id = ${invoiceId} order by item_code`
+
+  return {
+    invoiceNumber: inv!.invoice_number,
+    abn: inv!.abn,
+    subtotalAud: Number(inv!.subtotal_aud),
+    gstAud: Number(inv!.gst_aud),
+    totalAud: Number(inv!.total_aud),
+    lines: lines.map((l) => ({
+      itemCode: l.item_code,
+      description: l.description,
+      qty: Number(l.qty),
+      unitPriceAud: Number(l.unit_price_aud),
+      lineTotalAud: Number(l.line_total_aud),
+    })),
+  }
 }
 
 describe('the embedded corpus', () => {
@@ -106,10 +161,59 @@ describe('the embedded corpus', () => {
         case 5: // Rate variation cap.
           expect(Number(inv!.worst_ratio)).toBeGreaterThan(1 + vendor.rateVariationCapPct / 100)
           break
+        case PROSE_ONLY_SECTION: {
+          // No arithmetic can express "a call-out fee was charged without written
+          // approval". The machine-checkable shadow of it is a charge sitting on
+          // no rate card while everything countable about the invoice is clean.
+          const [offCatalogue] = await sql<{ n: string }[]>`
+            select count(*)::text as n
+            from invoice_lines l
+            join invoices i2 on i2.id = l.invoice_id
+            left join contract_rates r
+              on r.item_code = l.item_code and r.contract_id = i2.contract_id
+            where i2.invoice_number = ${violation.invoiceNumber} and r.id is null`
+          expect(Number(offCatalogue!.n)).toBeGreaterThan(0)
+          expect(Number(inv!.subtotal_aud)).toBeCloseTo(Number(inv!.lines_sum), 2)
+          expect(Number(inv!.total_aud)).toBeCloseTo(Number(inv!.po_total), 2)
+          break
+        }
         default:
           throw new Error(`no check written for clause §${violation.clauseSection}`)
       }
     }
+  })
+
+  it('plants one breach that ONLY reading the contract can catch', async () => {
+    // Without this, every planted breach is also caught by arithmetic, and the
+    // contract-terms agent's live spec proves only that an expensive model agrees
+    // with a calculator. A prose-only obligation — no call-out fees without prior
+    // written approval — is the case that separates reading from counting, and it
+    // is the one the whole RAG capability exists for.
+    const proseOnly = PLANTED_VIOLATIONS.filter((v) => v.clauseSection === PROSE_ONLY_SECTION)
+    expect(proseOnly, 'a violation planted against the prose-only clause').toHaveLength(1)
+    const target = proseOnly[0]!
+
+    const [row] = await sql<{ id: string; vendor_id: string }[]>`
+      select id, vendor_id from invoices where invoice_number = ${target.invoiceNumber}`
+    expect(row, `no seeded invoice ${target.invoiceNumber}`).toBeDefined()
+
+    const [extracted, rates, po] = await Promise.all([
+      loadExtractedForTest(row!.id),
+      loadRates(row!.vendor_id),
+      loadPo(row!.id),
+    ])
+
+    // The point of the fixture: all three deterministic checks wave it through.
+    expect(runMathCheck(extracted).verdict, 'maths must be clean').toBe('pass')
+    expect(runPoMatchCheck(extracted, po).verdict, 'PO must match').toBe('pass')
+    expect(runPriceCheck(extracted, rates).verdict, 'no rate-card breach').toBe('pass')
+
+    // …and the charge it turns on is genuinely off the rate card, which is why
+    // the price check cannot see it.
+    const uncovered = extracted.lines.filter(
+      (line) => !rates.some((rate) => rate.itemCode === line.itemCode),
+    )
+    expect(uncovered.length, 'a charge no rate card covers').toBeGreaterThan(0)
   })
 
   it('retrieves a planted clause for its own vendor, and nobody else’s', async () => {

@@ -149,7 +149,18 @@ const poLines: PoLineRow[] = []
 const invoices: InvoiceRow[] = []
 const invoiceLines: InvoiceLineRow[] = []
 
-type LineSpec = { itemCode: string; qty: number; priceMultiplier?: number }
+type LineSpec = {
+  itemCode: string
+  qty: number
+  priceMultiplier?: number
+  /**
+   * An OFF-CATALOGUE charge: a line whose code is on no rate card, priced here
+   * rather than looked up. The rate-card check skips such a line by design (there
+   * is nothing to compare it against), which is exactly what makes it the fixture
+   * for a breach only the contract's prose forbids — see PROSE_ONLY_SECTION.
+   */
+  offCatalogue?: { description: string; unitPriceAud: number }
+}
 type InvoiceSpec = {
   vendorIdx: number
   lines: LineSpec[]
@@ -166,13 +177,16 @@ function addInvoice(spec: InvoiceSpec): void {
 
   const invoiceId = randomUUID()
   const lineRows: InvoiceLineRow[] = spec.lines.map((l) => {
-    const unitPrice = round2(rateFor(l.itemCode) * (l.priceMultiplier ?? 1))
-    const item = ITEMS.find((it) => it.code === l.itemCode)!
+    const unitPrice = l.offCatalogue
+      ? l.offCatalogue.unitPriceAud
+      : round2(rateFor(l.itemCode) * (l.priceMultiplier ?? 1))
+    const description =
+      l.offCatalogue?.description ?? ITEMS.find((it) => it.code === l.itemCode)!.desc
     return {
       id: randomUUID(),
       invoice_id: invoiceId,
       item_code: l.itemCode,
-      description: item.desc,
+      description,
       qty: l.qty,
       unit_price_aud: unitPrice,
       line_total_aud: round2(l.qty * unitPrice),
@@ -247,6 +261,23 @@ addInvoice({ vendorIdx: 1, lines: [{ itemCode: 'VALVE-050', qty: 8, priceMultipl
 addInvoice({ vendorIdx: 2, lines: [{ itemCode: 'PIPE-025', qty: 5 }], subtotalOverride: 2100 }) // lines sum 2000, subtotal 2100 → maths error
 addInvoice({ vendorIdx: 3, lines: [{ itemCode: 'LABOUR-HR', qty: 20 }], poTotalDelta: 500 }) // PO total ≠ invoice total
 addInvoice({ vendorIdx: 5, lines: [{ itemCode: 'FILTER-010', qty: 10 }] }) // unapproved vendor (no contract)
+
+// INV-0021 — the prose-only breach (contract-docs PROSE_ONLY_SECTION). Pilbara's
+// MSA §6 forbids out-of-hours call-out fees without prior written approval. The
+// arithmetic is clean, the PO matches, and the loading is on no rate card, so all
+// three deterministic checks pass it. Only reading §6 catches this invoice, which
+// is the whole point of the contract-terms agent.
+addInvoice({
+  vendorIdx: 0,
+  lines: [
+    { itemCode: 'PUMP-100', qty: 1 },
+    {
+      itemCode: 'CALLOUT-WE',
+      qty: 1,
+      offCatalogue: { description: 'Weekend call-out loading', unitPriceAud: 850 },
+    },
+  ],
+})
 
 // --- Insert in FK order -----------------------------------------------------
 

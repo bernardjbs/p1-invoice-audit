@@ -192,9 +192,21 @@ export type PlantedViolation = {
 }
 
 /**
+ * The clause whose breach no arithmetic can find. §6 forbids out-of-hours
+ * call-out fees without prior written approval, and an invoice can charge one
+ * while adding up perfectly, matching its purchase order, and touching no rate on
+ * the rate card. It is the only planted breach that requires the contract to be
+ * READ, which makes it the case the contract-terms agent exists for — every other
+ * violation here is also caught by a check that costs nothing.
+ */
+export const PROSE_ONLY_SECTION = 6
+
+/**
  * The dirty invoices the seed creates, mapped to the clause each one breaches.
  * Invoice numbers follow the seed's ordering: fifteen clean invoices
- * (INV-0001…INV-0015) then five deliberate discrepancies.
+ * (INV-0001…INV-0015), then five deliberate discrepancies, then the prose-only
+ * one — appended rather than inserted, so every existing invoice number and the
+ * extraction answer key keyed on them stay put.
  */
 export const PLANTED_VIOLATIONS: PlantedViolation[] = [
   {
@@ -224,6 +236,15 @@ export const PLANTED_VIOLATIONS: PlantedViolation[] = [
     sourceRef: 'MSA-1003 §4',
     clauseSection: 4,
     breach: 'Invoice total does not match the purchase order it was rendered against.',
+  },
+  {
+    invoiceNumber: 'INV-0021',
+    msaRef: 'MSA-1000',
+    sourceRef: 'MSA-1000 §6',
+    clauseSection: PROSE_ONLY_SECTION,
+    breach:
+      'Weekend call-out loading charged with no prior written approval. The invoice adds up, ' +
+      'matches its purchase order, and the charge is on no rate card — so only §6 forbids it.',
   },
 ]
 

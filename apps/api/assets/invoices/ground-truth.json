@@ -483,6 +483,34 @@
           "lineTotalAud": 800
         }
       ]
+    },
+    {
+      "invoiceNumber": "INV-0021",
+      "vendorName": "Pilbara Pumps Pty Ltd",
+      "abn": "51000000680",
+      "invoiceDate": "2026-02-01",
+      "dueDate": "2026-03-03",
+      "poNumber": "PO-2021",
+      "msaRef": "MSA-1000",
+      "subtotalAud": 5850,
+      "gstAud": 585,
+      "totalAud": 6435,
+      "lines": [
+        {
+          "itemCode": "CALLOUT-WE",
+          "description": "Weekend call-out loading",
+          "qty": 1,
+          "unitPriceAud": 850,
+          "lineTotalAud": 850
+        },
+        {
+          "itemCode": "PUMP-100",
+          "description": "Centrifugal slurry pump",
+          "qty": 1,
+          "unitPriceAud": 5000,
+          "lineTotalAud": 5000
+        }
+      ]
     }
   ]
 }
