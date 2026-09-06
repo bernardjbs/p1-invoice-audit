@@ -30,6 +30,18 @@ export async function uploadInvoicePdf(path: string, bytes: Uint8Array): Promise
   if (error) throw new Error(`storage upload ${path} failed: ${error.message}`)
 }
 
+/**
+ * Download a stored PDF's bytes. The audit engine reads the invoice the same way
+ * a person would — from the document itself — so extraction needs the bytes, not
+ * a URL: a signed URL would make the model fetch over the network from a host it
+ * cannot reach, and would expire.
+ */
+export async function downloadInvoicePdf(path: string): Promise<Buffer> {
+  const { data, error } = await storageClient().download(path)
+  if (error) throw new Error(`storage download ${path} failed: ${error.message}`)
+  return Buffer.from(await data.arrayBuffer())
+}
+
 /** A short-lived signed URL for a stored PDF, or null if the path is unset. */
 export async function signedPdfUrl(path: string | null, expiresIn = 3600): Promise<string | null> {
   if (!path) return null
