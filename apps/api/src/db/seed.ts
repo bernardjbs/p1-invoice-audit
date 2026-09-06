@@ -60,16 +60,53 @@ const VENDOR_DEFS = [
 // --- Row types --------------------------------------------------------------
 
 type VendorRow = { id: string; name: string; abn: string; is_approved: boolean }
-type ContractRow = { id: string; vendor_id: string; title: string; msa_ref: string; starts_on: string; ends_on: string }
-type RateRow = { id: string; contract_id: string; item_code: string; description: string; unit: string; rate_aud: number }
-type PoRow = { id: string; po_number: string; vendor_id: string; status: string; total_aud: number }
-type PoLineRow = { id: string; po_id: string; item_code: string; qty: number; unit_price_aud: number }
-type InvoiceRow = {
-  id: string; invoice_number: string; vendor_id: string; po_id: string; contract_id: string | null
-  invoice_date: string; due_date: string; subtotal_aud: number; gst_aud: number; total_aud: number
-  status: string; pdf_path: string | null
+type ContractRow = {
+  id: string
+  vendor_id: string
+  title: string
+  msa_ref: string
+  starts_on: string
+  ends_on: string
 }
-type InvoiceLineRow = { id: string; invoice_id: string; item_code: string; description: string; qty: number; unit_price_aud: number; line_total_aud: number }
+type RateRow = {
+  id: string
+  contract_id: string
+  item_code: string
+  description: string
+  unit: string
+  rate_aud: number
+}
+type PoRow = { id: string; po_number: string; vendor_id: string; status: string; total_aud: number }
+type PoLineRow = {
+  id: string
+  po_id: string
+  item_code: string
+  qty: number
+  unit_price_aud: number
+}
+type InvoiceRow = {
+  id: string
+  invoice_number: string
+  vendor_id: string
+  po_id: string
+  contract_id: string | null
+  invoice_date: string
+  due_date: string
+  subtotal_aud: number
+  gst_aud: number
+  total_aud: number
+  status: string
+  pdf_path: string | null
+}
+type InvoiceLineRow = {
+  id: string
+  invoice_id: string
+  item_code: string
+  description: string
+  qty: number
+  unit_price_aud: number
+  line_total_aud: number
+}
 
 // --- Build the graph in memory ---------------------------------------------
 
@@ -157,7 +194,13 @@ function addInvoice(spec: InvoiceSpec): void {
   }
   pos.push(po)
   for (const lr of lineRows) {
-    poLines.push({ id: randomUUID(), po_id: po.id, item_code: lr.item_code, qty: lr.qty, unit_price_aud: lr.unit_price_aud })
+    poLines.push({
+      id: randomUUID(),
+      po_id: po.id,
+      item_code: lr.item_code,
+      qty: lr.qty,
+      unit_price_aud: lr.unit_price_aud,
+    })
   }
 
   invoices.push({
@@ -179,11 +222,20 @@ function addInvoice(spec: InvoiceSpec): void {
 
 // 15 clean invoices across the four contracted vendors (prices at contract rate).
 const cleanLineSets: LineSpec[][] = [
-  [{ itemCode: 'PUMP-100', qty: 1 }, { itemCode: 'VALVE-050', qty: 4 }],
+  [
+    { itemCode: 'PUMP-100', qty: 1 },
+    { itemCode: 'VALVE-050', qty: 4 },
+  ],
   [{ itemCode: 'VALVE-050', qty: 10 }],
-  [{ itemCode: 'PIPE-025', qty: 6 }, { itemCode: 'FILTER-010', qty: 12 }],
+  [
+    { itemCode: 'PIPE-025', qty: 6 },
+    { itemCode: 'FILTER-010', qty: 12 },
+  ],
   [{ itemCode: 'LABOUR-HR', qty: 40 }],
-  [{ itemCode: 'FILTER-010', qty: 25 }, { itemCode: 'VALVE-050', qty: 2 }],
+  [
+    { itemCode: 'FILTER-010', qty: 25 },
+    { itemCode: 'VALVE-050', qty: 2 },
+  ],
 ]
 for (let i = 0; i < 15; i++) {
   addInvoice({ vendorIdx: i % 4, lines: cleanLineSets[i % cleanLineSets.length]! })

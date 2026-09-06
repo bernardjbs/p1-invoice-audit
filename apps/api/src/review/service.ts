@@ -19,7 +19,14 @@ export type ReviewQueueRow = {
 
 export async function listReviewQueue(): Promise<ReviewQueueRow[]> {
   const rows = await sql<
-    { id: string; invoice_number: string; vendor_name: string; total_aud: string; variance_pct: string | null; status: string }[]
+    {
+      id: string
+      invoice_number: string
+      vendor_name: string
+      total_aud: string
+      variance_pct: string | null
+      status: string
+    }[]
   >`
     select i.id, i.invoice_number, v.name as vendor_name, i.total_aud, i.status,
            (select ar.variance_pct from audit_runs ar
@@ -45,8 +52,14 @@ export type ReviewDecision = 'approved' | 'rejected'
  * any invoice that is not currently paused_review — decisions are only valid on
  * the review queue.
  */
-export async function submitReview(invoiceId: string, decision: ReviewDecision, note?: string): Promise<void> {
-  const [invoice] = await sql<{ status: string }[]>`select status from invoices where id = ${invoiceId}`
+export async function submitReview(
+  invoiceId: string,
+  decision: ReviewDecision,
+  note?: string,
+): Promise<void> {
+  const [invoice] = await sql<
+    { status: string }[]
+  >`select status from invoices where id = ${invoiceId}`
   if (!invoice) throw new HTTPException(404, { message: 'invoice not found' })
   if (invoice.status !== 'paused_review') {
     throw new HTTPException(409, { message: `invoice is ${invoice.status}, not paused_review` })

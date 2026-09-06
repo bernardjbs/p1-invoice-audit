@@ -21,7 +21,9 @@ beforeAll(async () => {
   await enqueueAudit(pausedId)
   await runWorkerOnce()
 
-  const [received] = await sql<{ id: string }[]>`select id from invoices where invoice_number = 'INV-0001'`
+  const [received] = await sql<
+    { id: string }[]
+  >`select id from invoices where invoice_number = 'INV-0001'`
   receivedId = received!.id
 })
 
@@ -50,7 +52,9 @@ describe('POST /api/invoices/:id/review', () => {
     })
     expect(res.status).toBe(200)
 
-    const [inv] = await sql<{ status: string }[]>`select status from invoices where id = ${pausedId}`
+    const [inv] = await sql<
+      { status: string }[]
+    >`select status from invoices where id = ${pausedId}`
     expect(inv!.status).toBe('approved')
 
     const [decision] = await sql<{ decision: string; note: string }[]>`

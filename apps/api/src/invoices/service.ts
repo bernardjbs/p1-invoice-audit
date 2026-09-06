@@ -20,7 +20,14 @@ export type InvoiceListRow = {
 
 export async function listInvoices(status?: string): Promise<InvoiceListRow[]> {
   const rows = await sql<
-    { id: string; invoice_number: string; vendor_name: string; status: string; invoice_date: string | null; total_aud: string }[]
+    {
+      id: string
+      invoice_number: string
+      vendor_name: string
+      status: string
+      invoice_date: string | null
+      total_aud: string
+    }[]
   >`
     select i.id, i.invoice_number, v.name as vendor_name, i.status,
            i.invoice_date::text, i.total_aud
@@ -50,7 +57,13 @@ export type InvoiceDetail = {
     totalAud: number
   }
   vendor: { id: string; name: string; abn: string | null; isApproved: boolean }
-  lines: { itemCode: string; description: string | null; qty: number; unitPriceAud: number; lineTotalAud: number }[]
+  lines: {
+    itemCode: string
+    description: string | null
+    qty: number
+    unitPriceAud: number
+    lineTotalAud: number
+  }[]
   latestAudit: AuditRunView | null
   reviewDecision: { decision: string; note: string | null; decidedAt: string | null } | null
   pdfUrl: string | null
@@ -82,14 +95,22 @@ export async function getInvoiceDetail(id: string): Promise<InvoiceDetail | null
   if (!inv) return null
 
   const lines = await sql<
-    { item_code: string; description: string | null; qty: string; unit_price_aud: string; line_total_aud: string }[]
+    {
+      item_code: string
+      description: string | null
+      qty: string
+      unit_price_aud: string
+      line_total_aud: string
+    }[]
   >`
     select item_code, description, qty, unit_price_aud, line_total_aud
     from invoice_lines where invoice_id = ${id} order by item_code`
 
   const latestAudit: AuditRunView | null = await readLatestAuditRun(id)
 
-  const [decision] = await sql<{ decision: string; note: string | null; decided_at: string | null }[]>`
+  const [decision] = await sql<
+    { decision: string; note: string | null; decided_at: string | null }[]
+  >`
     select decision, note, decided_at::text from review_decisions
     where invoice_id = ${id} order by decided_at desc nulls last limit 1`
 
@@ -104,7 +125,12 @@ export async function getInvoiceDetail(id: string): Promise<InvoiceDetail | null
       gstAud: Number(inv.gst_aud),
       totalAud: Number(inv.total_aud),
     },
-    vendor: { id: inv.vendor_id, name: inv.vendor_name, abn: inv.vendor_abn, isApproved: inv.vendor_is_approved },
+    vendor: {
+      id: inv.vendor_id,
+      name: inv.vendor_name,
+      abn: inv.vendor_abn,
+      isApproved: inv.vendor_is_approved,
+    },
     lines: lines.map((l) => ({
       itemCode: l.item_code,
       description: l.description,
@@ -113,7 +139,9 @@ export async function getInvoiceDetail(id: string): Promise<InvoiceDetail | null
       lineTotalAud: Number(l.line_total_aud),
     })),
     latestAudit,
-    reviewDecision: decision ? { decision: decision.decision, note: decision.note, decidedAt: decision.decided_at } : null,
+    reviewDecision: decision
+      ? { decision: decision.decision, note: decision.note, decidedAt: decision.decided_at }
+      : null,
     pdfUrl: await signedPdfUrl(inv.pdf_path),
   }
 }
@@ -146,7 +174,9 @@ export async function setInvoiceStatus(id: string, status: InvoiceStatus): Promi
   await sql`update invoices set status = ${status} where id = ${id}`
 }
 
-export async function listVendors(): Promise<{ id: string; name: string; abn: string | null; isApproved: boolean }[]> {
+export async function listVendors(): Promise<
+  { id: string; name: string; abn: string | null; isApproved: boolean }[]
+> {
   const rows = await sql<{ id: string; name: string; abn: string | null; is_approved: boolean }[]>`
     select id, name, abn, is_approved from vendors order by name`
   return rows.map((r) => ({ id: r.id, name: r.name, abn: r.abn, isApproved: r.is_approved }))

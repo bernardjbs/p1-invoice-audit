@@ -29,7 +29,9 @@ test('flagged invoice pauses for review and clears on approve', async ({ page })
 
   // It appears in the review queue; approve it with a note.
   await page.getByRole('link', { name: 'Review queue' }).click()
-  const card = page.locator('[data-slot="card"]').filter({ has: page.getByRole('link', { name: number }) })
+  const card = page
+    .locator('[data-slot="card"]')
+    .filter({ has: page.getByRole('link', { name: number }) })
   await expect(card).toBeVisible()
   await card.getByPlaceholder('Reason / note (optional)').fill('looks fine on manual review')
   await card.getByRole('button', { name: 'Approve' }).click()

@@ -22,7 +22,9 @@ async function processJob(job: AuditJob): Promise<void> {
   // Pass only when the audit is clean AND within the variance threshold;
   // anything else pauses for human review (plan T7).
   const status =
-    result.overall === 'pass' && result.variancePct <= VARIANCE_THRESHOLD ? 'passed' : 'paused_review'
+    result.overall === 'pass' && result.variancePct <= VARIANCE_THRESHOLD
+      ? 'passed'
+      : 'paused_review'
   await sql`update invoices set status = ${status} where id = ${job.invoiceId}`
 }
 

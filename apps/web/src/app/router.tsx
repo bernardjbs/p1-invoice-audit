@@ -14,7 +14,11 @@ import { ReviewPage } from '@/features/review/review-page'
  */
 const rootRoute = createRootRoute({ component: RootLayout })
 
-const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: DashboardPage })
+const indexRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/',
+  component: DashboardPage,
+})
 const invoicesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/invoices',
@@ -28,10 +32,24 @@ const invoiceDetailRoute = createRoute({
     return <InvoiceDetailPage id={invoiceDetailRoute.useParams().id} />
   },
 })
-const uploadRoute = createRoute({ getParentRoute: () => rootRoute, path: '/upload', component: UploadPage })
-const reviewRoute = createRoute({ getParentRoute: () => rootRoute, path: '/review', component: ReviewPage })
+const uploadRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/upload',
+  component: UploadPage,
+})
+const reviewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/review',
+  component: ReviewPage,
+})
 
-const routeTree = rootRoute.addChildren([indexRoute, invoicesRoute, invoiceDetailRoute, uploadRoute, reviewRoute])
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  invoicesRoute,
+  invoiceDetailRoute,
+  uploadRoute,
+  reviewRoute,
+])
 
 export const router = createRouter({ routeTree })
 

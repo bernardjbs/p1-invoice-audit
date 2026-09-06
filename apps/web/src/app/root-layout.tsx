@@ -10,7 +10,7 @@ const NAV = [
 
 export function RootLayout() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="bg-background text-foreground min-h-screen">
       <header className="border-b">
         <nav className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-4">
           <span className="font-semibold">Invoice Audit</span>
@@ -19,7 +19,7 @@ export function RootLayout() {
               <Link
                 key={item.to}
                 to={item.to}
-                className="text-muted-foreground transition-colors hover:text-foreground [&.active]:font-medium [&.active]:text-foreground"
+                className="text-muted-foreground hover:text-foreground [&.active]:text-foreground transition-colors [&.active]:font-medium"
                 activeOptions={{ exact: item.to === '/' }}
               >
                 {item.label}

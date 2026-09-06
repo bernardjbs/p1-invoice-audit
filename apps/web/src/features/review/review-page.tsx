@@ -43,9 +43,9 @@ function ReviewCard({ item }: { item: ReviewQueueItem }) {
           <Link to="/invoices/$id" params={{ id: item.id }} className="hover:underline">
             {item.invoiceNumber}
           </Link>{' '}
-          <span className="font-normal text-muted-foreground">· {item.vendorName}</span>
+          <span className="text-muted-foreground font-normal">· {item.vendorName}</span>
         </CardTitle>
-        <div className="text-sm text-muted-foreground">
+        <div className="text-muted-foreground text-sm">
           {formatAud(item.totalAud)}
           {item.variancePct !== null ? ` · variance ${formatPct(item.variancePct)}` : ''}
         </div>
@@ -61,7 +61,11 @@ function ReviewCard({ item }: { item: ReviewQueueItem }) {
           <Button onClick={() => decide('approved')} disabled={submit.isPending}>
             Approve
           </Button>
-          <Button variant="destructive" onClick={() => decide('rejected')} disabled={submit.isPending}>
+          <Button
+            variant="destructive"
+            onClick={() => decide('rejected')}
+            disabled={submit.isPending}
+          >
             Reject
           </Button>
         </div>

@@ -38,7 +38,7 @@ export PATH="$HOME/.nvm/versions/node/v22.23.2/bin:$PATH"
 Under node 20 both test tiers fail, and **neither failure names the environment as the cause** —
 which is what makes this worth a rule rather than a note:
 
-- **Unit tier:** `apps/web/.../check-results.test.tsx` fails to *start* (`ERR_REQUIRE_ESM` in the
+- **Unit tier:** `apps/web/.../check-results.test.tsx` fails to _start_ (`ERR_REQUIRE_ESM` in the
   jsdom chain) and the run reports "3 files passed / 1 error" — reads as almost-green.
 - **Integration tier:** three specs fail because `@supabase/supabase-js` needs Node 22's native
   WebSocket; it surfaces as **HTTP 500 from the API**, which reads as broken application code.
@@ -70,11 +70,11 @@ Supabase values) and **`prd`** (deploy creds: `SUPABASE_ACCESS_TOKEN`, `SUPABASE
 
 Three delivery mechanisms are in use; a fresh clone must restore two of them:
 
-| Mechanism | Vendors | Tracked in | Restore after clone |
-|---|---|---|---|
-| `skills` CLI (project-level files) | Vercel/AI SDK (9), shadcn (`shadcn`, `migrate-radix-to-base`) | `skills-lock.json` | `bunx skills experimental_install` |
-| Claude Code plugins (project-scoped) | Supabase, `postgres-best-practices`, `claude-api` | `.claude/settings.json` | re-add marketplaces (below), then they load |
-| TanStack Intent (on-demand) | TanStack Router/Query | `AGENTS.md` | nothing — agent runs `bunx @tanstack/intent load` per task |
+| Mechanism                            | Vendors                                                       | Tracked in              | Restore after clone                                        |
+| ------------------------------------ | ------------------------------------------------------------- | ----------------------- | ---------------------------------------------------------- |
+| `skills` CLI (project-level files)   | Vercel/AI SDK (9), shadcn (`shadcn`, `migrate-radix-to-base`) | `skills-lock.json`      | `bunx skills experimental_install`                         |
+| Claude Code plugins (project-scoped) | Supabase, `postgres-best-practices`, `claude-api`             | `.claude/settings.json` | re-add marketplaces (below), then they load                |
+| TanStack Intent (on-demand)          | TanStack Router/Query                                         | `AGENTS.md`             | nothing — agent runs `bunx @tanstack/intent load` per task |
 
 **Fresh-clone setup** (marketplaces are user-level, so they don't travel with the repo):
 

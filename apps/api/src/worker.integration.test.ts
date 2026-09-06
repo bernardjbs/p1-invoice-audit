@@ -11,7 +11,9 @@ import { runWorkerOnce } from './worker'
  */
 
 async function invoiceId(number: string): Promise<string> {
-  const [row] = await sql<{ id: string }[]>`select id from invoices where invoice_number = ${number}`
+  const [row] = await sql<
+    { id: string }[]
+  >`select id from invoices where invoice_number = ${number}`
   return row!.id
 }
 
@@ -67,7 +69,9 @@ describe('runWorkerOnce', () => {
     await enqueueAudit(unapprovedId)
     await runWorkerOnce()
 
-    const [inv] = await sql<{ status: string }[]>`select status from invoices where id = ${unapprovedId}`
+    const [inv] = await sql<
+      { status: string }[]
+    >`select status from invoices where id = ${unapprovedId}`
     expect(inv!.status).toBe('paused_review')
 
     const [run] = await sql<{ id: string; overall: string }[]>`

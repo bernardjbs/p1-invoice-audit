@@ -27,10 +27,34 @@ export type ContractVendor = {
 }
 
 export const CONTRACT_VENDORS: ContractVendor[] = [
-  { vendorIndex: 0, name: 'Pilbara Pumps Pty Ltd', msaRef: 'MSA-1000', paymentDays: 30, rateVariationCapPct: 5 },
-  { vendorIndex: 1, name: 'Kalgoorlie Valves & Fittings Pty Ltd', msaRef: 'MSA-1001', paymentDays: 30, rateVariationCapPct: 5 },
-  { vendorIndex: 2, name: 'Hedland Heavy Haulage Pty Ltd', msaRef: 'MSA-1002', paymentDays: 45, rateVariationCapPct: 7.5 },
-  { vendorIndex: 3, name: 'Goldfields Fasteners Pty Ltd', msaRef: 'MSA-1003', paymentDays: 30, rateVariationCapPct: 5 },
+  {
+    vendorIndex: 0,
+    name: 'Pilbara Pumps Pty Ltd',
+    msaRef: 'MSA-1000',
+    paymentDays: 30,
+    rateVariationCapPct: 5,
+  },
+  {
+    vendorIndex: 1,
+    name: 'Kalgoorlie Valves & Fittings Pty Ltd',
+    msaRef: 'MSA-1001',
+    paymentDays: 30,
+    rateVariationCapPct: 5,
+  },
+  {
+    vendorIndex: 2,
+    name: 'Hedland Heavy Haulage Pty Ltd',
+    msaRef: 'MSA-1002',
+    paymentDays: 45,
+    rateVariationCapPct: 7.5,
+  },
+  {
+    vendorIndex: 3,
+    name: 'Goldfields Fasteners Pty Ltd',
+    msaRef: 'MSA-1003',
+    paymentDays: 30,
+    rateVariationCapPct: 5,
+  },
 ]
 
 /** `Pilbara Pumps Pty Ltd` → `pilbara-pumps-pty-ltd`. Stable filenames. */

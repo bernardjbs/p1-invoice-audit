@@ -26,8 +26,7 @@ export function useInvoice(id: string) {
     queryFn: () => api.get<InvoiceDetail>(`/invoices/${id}`),
     // While an audit is in flight, poll so the results appear without a manual
     // refresh (plan T11).
-    refetchInterval: (query) =>
-      query.state.data?.invoice.status === 'auditing' ? 1500 : false,
+    refetchInterval: (query) => (query.state.data?.invoice.status === 'auditing' ? 1500 : false),
   })
 }
 

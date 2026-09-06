@@ -116,7 +116,11 @@ describe('chunking', () => {
       expect(part.content.length).toBeLessThanOrEqual(MAX_CHUNK_CHARS)
     }
     // Nothing lost: rejoining the parts reproduces the clause word for word.
-    const rejoined = parts.map((p) => p.content).join(' ').replace(/\s+/g, ' ').trim()
+    const rejoined = parts
+      .map((p) => p.content)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim()
     const original = `${long.section}. ${long.heading} — ${long.text}`.replace(/\s+/g, ' ').trim()
     expect(rejoined).toBe(original)
   })

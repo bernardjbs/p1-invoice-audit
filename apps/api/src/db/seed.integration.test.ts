@@ -27,7 +27,9 @@ function isValidAbn(abn: string): boolean {
 
 describe('seed volume', () => {
   it('has the expected order of magnitude of rows', async () => {
-    const [row] = await sql<{ vendors: number; contracts: number; pos: number; invoices: number }[]>`
+    const [row] = await sql<
+      { vendors: number; contracts: number; pos: number; invoices: number }[]
+    >`
       select
         (select count(*) from vendors)::int as vendors,
         (select count(*) from contracts)::int as contracts,

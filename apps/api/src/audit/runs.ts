@@ -43,14 +43,23 @@ export async function persistAuditRun(invoiceId: string, result: AuditResult): P
 /** The latest audit run for an invoice with its four check results, or null. */
 export async function readLatestAuditRun(invoiceId: string): Promise<AuditRunView | null> {
   const [run] = await sql<
-    { id: string; engine: string; overall: Verdict; variance_pct: string; started_at: string | null; finished_at: string | null }[]
+    {
+      id: string
+      engine: string
+      overall: Verdict
+      variance_pct: string
+      started_at: string | null
+      finished_at: string | null
+    }[]
   >`
     select id, engine, overall, variance_pct, started_at::text, finished_at::text
     from audit_runs where invoice_id = ${invoiceId}
     order by started_at desc nulls last limit 1`
   if (!run) return null
 
-  const checks = await sql<{ check_type: CheckResult['type']; verdict: Verdict; evidence: CheckResult['evidence'] }[]>`
+  const checks = await sql<
+    { check_type: CheckResult['type']; verdict: Verdict; evidence: CheckResult['evidence'] }[]
+  >`
     select check_type, verdict, evidence from check_results where audit_run_id = ${run.id}`
   return {
     engine: run.engine,

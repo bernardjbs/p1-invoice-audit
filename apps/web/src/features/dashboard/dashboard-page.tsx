@@ -1,13 +1,27 @@
 import { Link } from '@tanstack/react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { useInvoices } from '@/features/invoices/api'
 import { countByStatus, STATUS_META } from '@/features/invoices/status'
 import { StatusBadge } from '@/features/invoices/status-badge'
 import { formatAud, formatDate } from '@/lib/format'
 import type { InvoiceStatus } from '@/features/invoices/types'
 
-const CARD_ORDER: InvoiceStatus[] = ['received', 'auditing', 'passed', 'paused_review', 'approved', 'rejected']
+const CARD_ORDER: InvoiceStatus[] = [
+  'received',
+  'auditing',
+  'passed',
+  'paused_review',
+  'approved',
+  'rejected',
+]
 
 export function DashboardPage() {
   const { data: invoices, isPending, isError, error } = useInvoices()
@@ -26,7 +40,9 @@ export function DashboardPage() {
         {CARD_ORDER.map((status) => (
           <Card key={status}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{STATUS_META[status].label}</CardTitle>
+              <CardTitle className="text-muted-foreground text-sm font-medium">
+                {STATUS_META[status].label}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-semibold">{counts[status]}</p>

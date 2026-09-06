@@ -33,7 +33,8 @@ async function getJson(path: string): Promise<{ status: number; body: unknown }>
 function makePdf(): Blob {
   // A minimal but valid single-page PDF — the audit never parses it (mock
   // engine), storage only needs bytes.
-  const pdf = '%PDF-1.1\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF'
+  const pdf =
+    '%PDF-1.1\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF'
   return new Blob([pdf], { type: 'application/pdf' })
 }
 
@@ -60,7 +61,8 @@ async function main(): Promise<void> {
   form.set('pdf', makePdf(), `${invoiceNumber}.pdf`)
   const uploadRes = await fetch(`${BASE}/api/invoices`, { method: 'POST', body: form })
   const uploaded = (await uploadRes.json().catch(() => null)) as { id?: string } | null
-  if (uploadRes.status !== 201 || !uploaded?.id) fail('POST /api/invoices', { status: uploadRes.status, uploaded })
+  if (uploadRes.status !== 201 || !uploaded?.id)
+    fail('POST /api/invoices', { status: uploadRes.status, uploaded })
   const id = uploaded.id
   console.log(`✓ uploaded ${invoiceNumber} (id ${id})`)
 
@@ -86,9 +88,11 @@ async function main(): Promise<void> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ decision: 'approved', note: 'smoke' }),
   })
-  if (reviewRes.status !== 200) fail('POST review', { status: reviewRes.status, body: await reviewRes.text() })
+  if (reviewRes.status !== 200)
+    fail('POST review', { status: reviewRes.status, body: await reviewRes.text() })
   const after = (await getJson(`/api/invoices/${id}`)).body as { invoice: { status: string } }
-  if (after.invoice.status === 'paused_review') fail('review did not clear paused_review', after.invoice)
+  if (after.invoice.status === 'paused_review')
+    fail('review did not clear paused_review', after.invoice)
   console.log(`✓ approved → status ${after.invoice.status}`)
 
   console.log('\nSMOKE PASSED — upload → audit → review works on the live URL')

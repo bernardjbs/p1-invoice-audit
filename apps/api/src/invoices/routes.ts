@@ -28,7 +28,8 @@ invoicesRoutes.get('/invoices', async (c) => {
   let status: string | undefined
   if (raw !== undefined) {
     const parsed = StatusFilter.safeParse(raw)
-    if (!parsed.success) return c.json({ error: { message: 'invalid status filter', code: 'bad_status' } }, 400)
+    if (!parsed.success)
+      return c.json({ error: { message: 'invalid status filter', code: 'bad_status' } }, 400)
     status = parsed.data
   }
   return c.json(await listInvoices(status), 200)
@@ -43,10 +44,12 @@ invoicesRoutes.get('/invoices/:id', async (c) => {
 invoicesRoutes.post('/invoices', async (c) => {
   const body = await c.req.parseBody()
   const fields = UploadFields.safeParse(body)
-  if (!fields.success) return c.json({ error: { message: 'invalid invoice fields', code: 'bad_fields' } }, 400)
+  if (!fields.success)
+    return c.json({ error: { message: 'invalid invoice fields', code: 'bad_fields' } }, 400)
 
   const pdf = body['pdf']
-  if (!(pdf instanceof File)) return c.json({ error: { message: 'pdf file is required', code: 'no_pdf' } }, 400)
+  if (!(pdf instanceof File))
+    return c.json({ error: { message: 'pdf file is required', code: 'no_pdf' } }, 400)
   const bytes = new Uint8Array(await pdf.arrayBuffer())
 
   const id = await createInvoice({ ...fields.data, pdf: bytes })

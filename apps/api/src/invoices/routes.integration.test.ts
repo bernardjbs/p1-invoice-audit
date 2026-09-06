@@ -11,7 +11,9 @@ import { loadAuditInput } from '../audit/data'
  */
 
 // A tiny valid PDF (header + minimal body) for the upload test.
-const TINY_PDF = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, 0x0a, 0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a])
+const TINY_PDF = new Uint8Array([
+  0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, 0x0a, 0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a,
+])
 
 let seededInvoiceId: string
 let unapprovedInvoiceId: string
@@ -30,7 +32,12 @@ describe('GET /api/vendors', () => {
   it('returns the seeded vendors with camelCase fields', async () => {
     const res = await app.request('/api/vendors')
     expect(res.status).toBe(200)
-    const vendors = (await res.json()) as { id: string; name: string; abn: string; isApproved: boolean }[]
+    const vendors = (await res.json()) as {
+      id: string
+      name: string
+      abn: string
+      isApproved: boolean
+    }[]
     expect(vendors.length).toBeGreaterThanOrEqual(6)
     expect(vendors.some((v) => v.isApproved === false)).toBe(true)
   })
@@ -40,7 +47,13 @@ describe('GET /api/invoices', () => {
   it('lists all seeded invoices', async () => {
     const res = await app.request('/api/invoices')
     expect(res.status).toBe(200)
-    const rows = (await res.json()) as { id: string; invoiceNumber: string; vendorName: string; status: string; totalAud: number }[]
+    const rows = (await res.json()) as {
+      id: string
+      invoiceNumber: string
+      vendorName: string
+      status: string
+      totalAud: number
+    }[]
     expect(rows.length).toBeGreaterThanOrEqual(20)
     expect(typeof rows[0]!.totalAud).toBe('number')
     expect(rows[0]!.vendorName).toBeTruthy()

@@ -7,7 +7,10 @@ import type { ReviewQueueItem } from '@/features/invoices/types'
 export const reviewKeys = { queue: ['review-queue'] as const }
 
 export function useReviewQueue() {
-  return useQuery({ queryKey: reviewKeys.queue, queryFn: () => api.get<ReviewQueueItem[]>('/review-queue') })
+  return useQuery({
+    queryKey: reviewKeys.queue,
+    queryFn: () => api.get<ReviewQueueItem[]>('/review-queue'),
+  })
 }
 
 export type ReviewInput = { id: string; decision: 'approved' | 'rejected'; note?: string }
@@ -22,7 +25,9 @@ export function useSubmitReview() {
     onMutate: async ({ id }) => {
       await qc.cancelQueries({ queryKey: reviewKeys.queue })
       const previous = qc.getQueryData<ReviewQueueItem[]>(reviewKeys.queue)
-      qc.setQueryData<ReviewQueueItem[]>(reviewKeys.queue, (old) => (old ?? []).filter((r) => r.id !== id))
+      qc.setQueryData<ReviewQueueItem[]>(reviewKeys.queue, (old) =>
+        (old ?? []).filter((r) => r.id !== id),
+      )
       return { previous }
     },
     onError: (_err, _vars, ctx) => {

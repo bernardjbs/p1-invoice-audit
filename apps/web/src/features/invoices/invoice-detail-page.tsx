@@ -1,5 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { useInvoice } from './api'
 import { CheckResults } from './check-results'
 import { StatusBadge } from './status-badge'
@@ -64,7 +71,7 @@ export function InvoiceDetailPage({ id }: { id: string }) {
         <div className="flex items-baseline gap-3">
           <h2 className="text-lg font-medium">Audit</h2>
           {latestAudit && (
-            <span className="text-sm text-muted-foreground">
+            <span className="text-muted-foreground text-sm">
               {latestAudit.engine} · variance {formatPct(latestAudit.variancePct)}
             </span>
           )}
@@ -84,13 +91,20 @@ export function InvoiceDetailPage({ id }: { id: string }) {
           <p className="text-sm">
             <span className="font-medium capitalize">{reviewDecision.decision}</span>
             {reviewDecision.note ? ` — ${reviewDecision.note}` : ''}
-            {reviewDecision.decidedAt ? ` (${formatDate(reviewDecision.decidedAt.slice(0, 10))})` : ''}
+            {reviewDecision.decidedAt
+              ? ` (${formatDate(reviewDecision.decidedAt.slice(0, 10))})`
+              : ''}
           </p>
         </section>
       )}
 
       {pdfUrl && (
-        <a href={pdfUrl} target="_blank" rel="noreferrer" className="inline-block text-sm underline">
+        <a
+          href={pdfUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-block text-sm underline"
+        >
           View invoice PDF
         </a>
       )}
@@ -102,7 +116,7 @@ function Field({ label, value }: { label: string; value: string }) {
   return (
     <Card>
       <CardHeader className="pb-1">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
+        <CardTitle className="text-muted-foreground text-sm font-medium">{label}</CardTitle>
       </CardHeader>
       <CardContent className="text-lg font-semibold">{value}</CardContent>
     </Card>

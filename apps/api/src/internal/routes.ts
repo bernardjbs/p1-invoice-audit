@@ -17,7 +17,8 @@ export const internalRoutes = new Hono()
 
 internalRoutes.post('/internal/drain', async (c) => {
   const secret = process.env.WORKER_SECRET
-  if (!secret) return c.json({ error: { message: 'worker not configured', code: 'unconfigured' } }, 503)
+  if (!secret)
+    return c.json({ error: { message: 'worker not configured', code: 'unconfigured' } }, 503)
   if (c.req.header('x-worker-secret') !== secret)
     return c.json({ error: { message: 'forbidden', code: 'forbidden' } }, 403)
   const processed = await runWorkerOnce()

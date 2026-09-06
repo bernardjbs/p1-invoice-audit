@@ -9,7 +9,12 @@ const checks: CheckResult[] = [
   {
     type: 'price_vs_contract',
     verdict: 'flag',
-    evidence: { summary: 'Line PUMP-100 over rate.', expected: '5000.00', actual: '6000.00', sourceRef: 'PUMP-100' },
+    evidence: {
+      summary: 'Line PUMP-100 over rate.',
+      expected: '5000.00',
+      actual: '6000.00',
+      sourceRef: 'PUMP-100',
+    },
   },
   { type: 'po_match', verdict: 'pass', evidence: { summary: 'Matches PO.' } },
   { type: 'contract_terms', verdict: 'fail', evidence: { summary: 'Vendor not approved.' } },

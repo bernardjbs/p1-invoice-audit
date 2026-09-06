@@ -56,7 +56,9 @@ describe('the embedded corpus', () => {
 
   it('stores every clause the generator produced, none dropped', async () => {
     for (const vendor of CONTRACT_VENDORS) {
-      const expected = chunksFor(vendor).map((c) => c.sourceRef).sort()
+      const expected = chunksFor(vendor)
+        .map((c) => c.sourceRef)
+        .sort()
       const rows = await sql<{ source_ref: string }[]>`
         select ch.source_ref
         from contract_chunks ch join contracts c on c.id = ch.contract_id
@@ -72,7 +74,13 @@ describe('the embedded corpus', () => {
     // correct verdict wrong and nothing would say so.
     for (const violation of PLANTED_VIOLATIONS) {
       const [inv] = await sql<
-        { subtotal_aud: string; total_aud: string; po_total: string; lines_sum: string; worst_ratio: string | null }[]
+        {
+          subtotal_aud: string
+          total_aud: string
+          po_total: string
+          lines_sum: string
+          worst_ratio: string | null
+        }[]
       >`
         select i.subtotal_aud::text, i.total_aud::text, po.total_aud::text as po_total,
                (select coalesce(sum(l.line_total_aud), 0) from invoice_lines l where l.invoice_id = i.id)::text

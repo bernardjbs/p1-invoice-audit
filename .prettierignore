@@ -1,0 +1,10 @@
+# Generated or vendored — Prettier must not own these.
+node_modules
+dist
+build
+.agents
+.claude
+test-results
+playwright-report
+supabase/.temp
+bun.lock

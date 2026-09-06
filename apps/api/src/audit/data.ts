@@ -36,7 +36,13 @@ export const loadAuditInput: (invoiceId: string) => Promise<AuditInput> = async 
   if (!invoice) throw new Error(`invoice ${invoiceId} not found`)
 
   const lines = await sql<
-    { item_code: string; description: string; qty: string; unit_price_aud: string; line_total_aud: string }[]
+    {
+      item_code: string
+      description: string
+      qty: string
+      unit_price_aud: string
+      line_total_aud: string
+    }[]
   >`
     select item_code, description, qty, unit_price_aud, line_total_aud
     from invoice_lines where invoice_id = ${invoiceId} order by item_code`
@@ -61,7 +67,10 @@ export const loadAuditInput: (invoiceId: string) => Promise<AuditInput> = async 
       unitPriceAud: Number(l.unit_price_aud),
       lineTotalAud: Number(l.line_total_aud),
     })),
-    contractRates: contractRates.map((r) => ({ itemCode: r.item_code, rateAud: Number(r.rate_aud) })),
+    contractRates: contractRates.map((r) => ({
+      itemCode: r.item_code,
+      rateAud: Number(r.rate_aud),
+    })),
     po: { poNumber: invoice.po_number ?? '(none)', totalAud: Number(invoice.po_total_aud ?? 0) },
     vendor: { name: invoice.vendor_name, isApproved: invoice.vendor_is_approved },
   }

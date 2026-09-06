@@ -2,7 +2,9 @@
   "name": "p1-invoice-audit",
   "private": true,
   "type": "module",
-  "workspaces": ["apps/*"],
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "lint": "eslint . && bun run lint:citations",
     "lint:citations": "bash scripts/check-plan-citations.sh",

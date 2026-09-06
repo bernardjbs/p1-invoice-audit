@@ -8,13 +8,15 @@ export function CheckResultCard({ check }: { check: CheckResult }) {
   return (
     <Card data-testid={`check-${check.type}`}>
       <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{CHECK_LABELS[check.type] ?? check.type}</CardTitle>
+        <CardTitle className="text-sm font-medium">
+          {CHECK_LABELS[check.type] ?? check.type}
+        </CardTitle>
         <VerdictBadge verdict={check.verdict} />
       </CardHeader>
       <CardContent className="space-y-1 text-sm">
         <p>{check.evidence.summary}</p>
         {(check.evidence.expected !== undefined || check.evidence.actual !== undefined) && (
-          <dl className="grid grid-cols-[auto_1fr] gap-x-3 text-muted-foreground">
+          <dl className="text-muted-foreground grid grid-cols-[auto_1fr] gap-x-3">
             {check.evidence.expected !== undefined && (
               <>
                 <dt>Expected</dt>

@@ -18,7 +18,8 @@ reviewRoutes.get('/review-queue', async (c) => c.json(await listReviewQueue(), 2
 
 reviewRoutes.post('/invoices/:id/review', async (c) => {
   const parsed = ReviewBody.safeParse(await c.req.json().catch(() => null))
-  if (!parsed.success) return c.json({ error: { message: 'invalid review decision', code: 'bad_review' } }, 400)
+  if (!parsed.success)
+    return c.json({ error: { message: 'invalid review decision', code: 'bad_review' } }, 400)
   await submitReview(c.req.param('id'), parsed.data.decision, parsed.data.note)
   return c.json({ status: parsed.data.decision }, 200)
 })

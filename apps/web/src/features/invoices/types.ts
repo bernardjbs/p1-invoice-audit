@@ -7,13 +7,7 @@ export type Verdict = 'pass' | 'flag' | 'fail'
 export type CheckType = 'math' | 'price_vs_contract' | 'po_match' | 'contract_terms'
 
 export type InvoiceStatus =
-  | 'received'
-  | 'auditing'
-  | 'passed'
-  | 'flagged'
-  | 'paused_review'
-  | 'approved'
-  | 'rejected'
+  'received' | 'auditing' | 'passed' | 'flagged' | 'paused_review' | 'approved' | 'rejected'
 
 export type InvoiceListItem = {
   id: string
@@ -51,7 +45,13 @@ export type InvoiceDetail = {
     totalAud: number
   }
   vendor: { id: string; name: string; abn: string | null; isApproved: boolean }
-  lines: { itemCode: string; description: string | null; qty: number; unitPriceAud: number; lineTotalAud: number }[]
+  lines: {
+    itemCode: string
+    description: string | null
+    qty: number
+    unitPriceAud: number
+    lineTotalAud: number
+  }[]
   latestAudit: AuditRunView | null
   reviewDecision: { decision: string; note: string | null; decidedAt: string | null } | null
   pdfUrl: string | null

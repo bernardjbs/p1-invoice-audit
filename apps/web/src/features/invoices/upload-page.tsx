@@ -3,7 +3,13 @@ import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useUploadInvoice, useVendors } from './api'
 
 /**
@@ -62,7 +68,9 @@ export function UploadPage() {
           <Input id="pdf" name="pdf" type="file" accept="application/pdf" required />
         </div>
 
-        {upload.isError && <p className="text-sm text-destructive">Upload failed: {upload.error.message}</p>}
+        {upload.isError && (
+          <p className="text-destructive text-sm">Upload failed: {upload.error.message}</p>
+        )}
 
         <Button type="submit" disabled={upload.isPending || !vendorId}>
           {upload.isPending ? 'Uploading…' : 'Upload & audit'}

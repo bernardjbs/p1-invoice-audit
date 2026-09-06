@@ -1,6 +1,19 @@
 import { getRouteApi, Link } from '@tanstack/react-router'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { useInvoices } from './api'
 import { STATUS_META } from './status'
 import { StatusBadge } from './status-badge'
@@ -57,7 +70,7 @@ export function InvoicesPage() {
             <TableBody>
               {invoices.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="text-muted-foreground text-center">
                     No invoices.
                   </TableCell>
                 </TableRow>

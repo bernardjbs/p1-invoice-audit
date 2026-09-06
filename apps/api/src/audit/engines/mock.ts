@@ -22,7 +22,8 @@ function rollUp(checks: CheckResult[]): Verdict {
 function mathCheck(input: AuditInput): CheckResult {
   const linesSum = input.lines.reduce((s, l) => s + l.lineTotalAud, 0)
   const subtotalOk = Math.abs(linesSum - input.invoice.subtotalAud) < EPS
-  const totalOk = Math.abs(input.invoice.subtotalAud + input.invoice.gstAud - input.invoice.totalAud) < EPS
+  const totalOk =
+    Math.abs(input.invoice.subtotalAud + input.invoice.gstAud - input.invoice.totalAud) < EPS
   const ok = subtotalOk && totalOk
   return {
     type: 'math',

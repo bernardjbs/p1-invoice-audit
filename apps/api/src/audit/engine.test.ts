@@ -13,7 +13,13 @@ import { AuditResultSchema, CHECK_TYPES, type AuditInput } from './types'
 // A clean invoice: maths balances, every line at contract rate, PO total
 // matches, vendor approved → nothing to flag.
 const cleanInput: AuditInput = {
-  invoice: { id: 'inv-clean', invoiceNumber: 'INV-0001', subtotalAud: 2500, gstAud: 250, totalAud: 2750 },
+  invoice: {
+    id: 'inv-clean',
+    invoiceNumber: 'INV-0001',
+    subtotalAud: 2500,
+    gstAud: 250,
+    totalAud: 2750,
+  },
   lines: [
     { itemCode: 'PUMP-01', description: 'Pump', qty: 2, unitPriceAud: 1000, lineTotalAud: 2000 },
     { itemCode: 'VALVE-02', description: 'Valve', qty: 10, unitPriceAud: 50, lineTotalAud: 500 },
@@ -28,8 +34,16 @@ const cleanInput: AuditInput = {
 
 // A single line billed 20% above its contract rate → price_vs_contract flag.
 const priceOverInput: AuditInput = {
-  invoice: { id: 'inv-price', invoiceNumber: 'INV-0002', subtotalAud: 1200, gstAud: 120, totalAud: 1320 },
-  lines: [{ itemCode: 'PUMP-01', description: 'Pump', qty: 1, unitPriceAud: 1200, lineTotalAud: 1200 }],
+  invoice: {
+    id: 'inv-price',
+    invoiceNumber: 'INV-0002',
+    subtotalAud: 1200,
+    gstAud: 120,
+    totalAud: 1320,
+  },
+  lines: [
+    { itemCode: 'PUMP-01', description: 'Pump', qty: 1, unitPriceAud: 1200, lineTotalAud: 1200 },
+  ],
   contractRates: [{ itemCode: 'PUMP-01', rateAud: 1000 }],
   po: { poNumber: 'PO-2000', totalAud: 1320 },
   vendor: { name: 'Acme Pumps', isApproved: true },

@@ -1,12 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import {
-  buildGroundTruth,
-  CONTRACT_VENDORS,
-  renderMsa,
-  vendorSlug,
-} from '../src/db/contract-docs'
+import { buildGroundTruth, CONTRACT_VENDORS, renderMsa, vendorSlug } from '../src/db/contract-docs'
 
 /**
  * Write the synthetic MSA corpus and its answer key to `assets/contracts/`.
