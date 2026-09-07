@@ -1,10 +1,6 @@
 apps/api/scripts/generate-invoice-pdfs.ts	* Generate a PDF for every seeded invoice (plan T4, criterion 3), upload it to
 apps/api/src/audit/data.ts	* Assembles an engine's input for one invoice from the database (plan T6).
 apps/api/src/audit/data.ts	// LEFT joins: an uploaded invoice may have no PO/contract yet (plan T6/T11),
-apps/api/src/audit/engine.test.ts	* Contract test for the audit seam (plan T5, criterion 6). It pins the LOCKED
-apps/api/src/audit/engine.test.ts	* standalone while T2/T3 build the DB in parallel.
-apps/api/src/audit/engine.ts	* AuditResult for a real invoice (plan T5, criterion 6) — the API and worker
-apps/api/src/audit/engine.ts	* loader defaults to the database (T6) but is injectable so callers and tests
 apps/api/src/audit/engines/stub.ts	* seals (plan T5, criterion 7): swapping the engine changes nothing but this
 apps/api/src/audit/runs.ts	* leaks check logic into the API or web layers. The worker (T7) writes via
 apps/api/src/audit/runs.ts	* Persist one audit run and its four check results (the worker, T7). Returns the

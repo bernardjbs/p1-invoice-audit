@@ -73,5 +73,12 @@ export type AuditInput = {
 /** A function that assembles an engine's input for one invoice id (DB in T6). */
 export type AuditInputLoader = (invoiceId: string) => Promise<AuditInput>
 
-/** The name of an engine implementation, chosen by env `AUDIT_ENGINE`. */
-export type EngineName = 'mock' | 'stub'
+/**
+ * The name of an engine implementation, chosen by env `AUDIT_ENGINE`.
+ *
+ * `langgraph` is fed differently from the other two — it reads the invoice off
+ * the PDF and fetches its own reference data, so it takes `AuditGraphInput`
+ * rather than `AuditInput`. The seam's promise is unchanged either way:
+ * `auditInvoice(id)` in, this file's `AuditResult` out.
+ */
+export type EngineName = 'mock' | 'stub' | 'langgraph'

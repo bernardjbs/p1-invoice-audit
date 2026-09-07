@@ -1,5 +1,7 @@
 import { sql } from '../../../db/client'
+import { downloadInvoicePdf } from '../../../lib/storage'
 import type { ContractRate, PurchaseOrder } from './checks'
+import type { AuditGraphInput } from './graph'
 
 /**
  * Everything the deterministic checks compare against, read from Postgres.
@@ -72,6 +74,31 @@ export type Vendor = {
   name: string
   /** On the approved-supplier list. False is a finding, not an error. */
   isApproved: boolean
+}
+
+/**
+ * What one graph run starts from: the invoice's id, its vendor's id, and the
+ * PDF's bytes.
+ *
+ * Deliberately narrow — three fields, not the pre-structured bundle the mock
+ * engine is handed. This engine reads the invoice itself and fetches its own
+ * reference data, so anything more would be handed over and thrown away.
+ *
+ * The PDF lives in Supabase Storage, not on disk; `pdf_path` on the row is the
+ * key. A missing path is a hard error rather than an empty buffer: an audit of
+ * no document would produce four confident findings about nothing.
+ */
+export async function loadGraphInput(invoiceId: string): Promise<AuditGraphInput> {
+  const [row] = await sql<{ vendor_id: string; pdf_path: string | null }[]>`
+    select vendor_id, pdf_path from invoices where id = ${invoiceId}`
+  if (!row) throw new Error(`invoice ${invoiceId} not found`)
+  if (!row.pdf_path) throw new Error(`invoice ${invoiceId} has no pdf_path to audit`)
+
+  return {
+    invoiceId,
+    vendorId: row.vendor_id,
+    pdf: await downloadInvoicePdf(row.pdf_path),
+  }
 }
 
 /** One vendor, or null if the id matches nothing. */

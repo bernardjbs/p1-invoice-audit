@@ -1,13 +1,26 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { auditInvoice, runEngine } from './engine'
-import { AuditResultSchema, CHECK_TYPES, type AuditInput } from './types'
+import type { AuditGraphDeps, AuditGraphInput } from './engines/langgraph'
+import type { ExtractedInvoice } from './extraction'
+import {
+  AuditResultSchema,
+  CHECK_TYPES,
+  type AuditInput,
+  type AuditResult,
+  type EngineName,
+} from './types'
 
 /**
- * Contract test for the audit seam (plan T5, criterion 6). It pins the LOCKED
- * shape of an AuditResult and proves every engine — mock and stub — satisfies
- * it. No database: engines are pure over injected `AuditInput`, so this runs
- * standalone while T2/T3 build the DB in parallel.
+ * Contract test for the audit seam (criterion 6). It pins the LOCKED shape of an
+ * AuditResult and proves EVERY engine satisfies it — the Phase-A mock, the
+ * swap-proof stub, and the real LangGraph engine.
+ *
+ * The three shape assertions below are the point of the whole seam: they are the
+ * same assertions, unchanged, run over an engine that did not exist when they
+ * were written. No database and no credentials — the mock and stub are pure over
+ * an injected bundle, and the LangGraph engine takes its loader and its model,
+ * database and agent as injected parts.
  */
 
 // A clean invoice: maths balances, every line at contract rate, PO total
@@ -69,22 +82,63 @@ const poMismatchInput: AuditInput = {
   po: { poNumber: 'PO-9999', totalAud: 5000 },
 }
 
-const ENGINES = ['mock', 'stub'] as const
+// The same clean invoice as `cleanInput`, but as the LangGraph engine meets it:
+// read off the PDF rather than handed over pre-structured.
+const cleanExtracted: ExtractedInvoice = {
+  invoiceNumber: 'INV-0001',
+  abn: '11 222 333 444',
+  subtotalAud: 2500,
+  gstAud: 250,
+  totalAud: 2750,
+  lines: cleanInput.lines,
+}
+
+const graphLoader = async (invoiceId: string): Promise<AuditGraphInput> => ({
+  invoiceId,
+  vendorId: 'vendor-1',
+  pdf: Buffer.from('%PDF-fake'),
+})
+
+const graphDeps: Partial<AuditGraphDeps> = {
+  extract: async () => cleanExtracted,
+  loadPo: async () => ({ poNumber: 'PO-1000', totalAud: 2750 }),
+  loadRates: async () => cleanInput.contractRates,
+  judgeContractTerms: async () => ({
+    type: 'contract_terms',
+    verdict: 'pass',
+    evidence: { summary: 'No clause forbids these charges.' },
+  }),
+}
+
+const ENGINES: { engine: EngineName; run: () => Promise<AuditResult> }[] = [
+  { engine: 'mock', run: async () => runEngine(cleanInput, 'mock') },
+  { engine: 'stub', run: async () => runEngine(cleanInput, 'stub') },
+  {
+    engine: 'langgraph',
+    run: () => auditInvoice('inv-clean', { engine: 'langgraph', graphLoader, graphDeps }),
+  },
+]
 
 describe('AuditResult shape contract', () => {
-  it.each(ENGINES)('%s engine output parses against the locked schema', (engine) => {
-    const result = runEngine(cleanInput, engine)
+  it.each(ENGINES)('$engine engine output parses against the locked schema', async ({ run }) => {
+    const result = await run()
     expect(() => AuditResultSchema.parse(result)).not.toThrow()
   })
 
-  it.each(ENGINES)('%s engine returns exactly four checks, one per type', (engine) => {
-    const result = runEngine(cleanInput, engine)
+  it.each(ENGINES)('$engine engine returns exactly four checks, one per type', async ({ run }) => {
+    const result = await run()
     expect(result.checks).toHaveLength(4)
     expect(result.checks.map((c) => c.type).sort()).toEqual([...CHECK_TYPES].sort())
   })
 
-  it.each(ENGINES)('%s engine names itself in the result', (engine) => {
-    expect(runEngine(cleanInput, engine).engine).toBe(engine)
+  it.each(ENGINES)('$engine engine names itself in the result', async ({ engine, run }) => {
+    expect((await run()).engine).toBe(engine)
+  })
+})
+
+describe('the langgraph engine is fed differently, and says so', () => {
+  it('refuses the pre-structured bundle rather than auditing an empty document', () => {
+    expect(() => runEngine(cleanInput, 'langgraph')).toThrow(/not fed AuditInput/)
   })
 })
 
