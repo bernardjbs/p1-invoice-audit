@@ -25,6 +25,7 @@
     "@langchain/openai": "^1.5.11",
     "@supabase/supabase-js": "^2.112.4",
     "hono": "^4.13.5",
+    "langsmith": "^0.10.1",
     "postgres": "^3.4.9",
     "zod": "^4.5.4"
   },

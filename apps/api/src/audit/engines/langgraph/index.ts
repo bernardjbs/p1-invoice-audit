@@ -7,6 +7,7 @@ import type { AuditResult } from '../../types'
 import { runContractTermsCheck } from './contract-terms-agent'
 import { buildAuditGraph, runAuditGraph, type AuditGraphDeps, type AuditGraphInput } from './graph'
 import { loadPo, loadRates } from './loaders'
+import { startAuditTrace, type TraceSink } from './tracing'
 
 /**
  * The LangGraph engine, assembled.
@@ -48,11 +49,16 @@ export function langGraphDefaultDeps(): AuditGraphDeps {
  * `checkpointer` is injectable so the unit tier can hand in an in-memory saver:
  * without that, importing the seam's test would need a live Postgres, and the
  * CI unit job has none.
+ *
+ * `traceSink` is where the LangSmith URL comes back. It is an out-parameter
+ * because `AuditResult` is locked and may not grow a field for it; see
+ * `tracing.ts`. Omitted, the run is still traced — nobody just reads the URL.
  */
 export async function runLangGraphEngine(
   input: AuditGraphInput,
   deps: Partial<AuditGraphDeps> = {},
   checkpointer?: BaseCheckpointSaver,
+  traceSink?: TraceSink,
 ): Promise<AuditResult> {
   const saver = checkpointer ?? (await getCheckpointer())
 
@@ -73,7 +79,18 @@ export async function runLangGraphEngine(
     await saver.deleteThread(input.invoiceId)
   }
 
-  return runAuditGraph(input, { ...langGraphDefaultDeps(), ...deps }, saver)
+  const trace = await startAuditTrace()
+  const result = await runAuditGraph(
+    input,
+    { ...langGraphDefaultDeps(), ...deps },
+    saver,
+    trace?.callbacks,
+  )
+  // After the run, never before: the trace's id does not exist until the root
+  // run closes. Resolving it here rather than in the worker keeps the whole
+  // observability concern inside the engine that produced it.
+  if (trace !== null && traceSink !== undefined) traceSink.url = await trace.url()
+  return result
 }
 
 /**
@@ -108,3 +125,4 @@ export async function resumeLangGraphEngine(
 }
 
 export type { AuditGraphDeps, AuditGraphInput } from './graph'
+export type { TraceSink } from './tracing'

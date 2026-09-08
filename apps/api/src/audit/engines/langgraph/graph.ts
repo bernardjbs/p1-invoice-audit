@@ -1,3 +1,4 @@
+import type { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 import type { BaseCheckpointSaver } from '@langchain/langgraph'
 import { Annotation, END, START, StateGraph, interrupt } from '@langchain/langgraph'
 import type { ExtractedInvoice } from '../../extraction'
@@ -199,11 +200,19 @@ export type AuditGraphInput = {
   pdfPath: string
 }
 
-/** Run one invoice through the graph and shape the final state into the locked result. */
+/**
+ * Run one invoice through the graph and shape the final state into the locked
+ * result.
+ *
+ * `callbacks` is how observability gets in without the graph knowing what it is:
+ * LangSmith tracing is a pair of handlers assembled in `tracing.ts` and passed
+ * straight to invoke. Left off, the run is simply untraced.
+ */
 export async function runAuditGraph(
   input: AuditGraphInput,
   deps: AuditGraphDeps,
   checkpointer?: BaseCheckpointSaver,
+  callbacks?: BaseCallbackHandler[],
 ): Promise<AuditResult> {
   // THREAD IDENTITY. `thread_id` is the key the saver files this run's state
   // under, and the key a later process uses to find it again. Using the invoice
@@ -212,6 +221,7 @@ export async function runAuditGraph(
   // checkpointer is wired; required the moment one is.
   const final = await buildAuditGraph(deps, checkpointer).invoke(input, {
     configurable: { thread_id: input.invoiceId },
+    ...(callbacks === undefined ? {} : { callbacks }),
   })
 
   return {

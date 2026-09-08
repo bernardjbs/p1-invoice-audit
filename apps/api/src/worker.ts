@@ -1,6 +1,6 @@
 import './config/load-env'
 import { auditInvoice, type AuditInvoiceOptions } from './audit/engine'
-import { resumeLangGraphEngine } from './audit/engines/langgraph'
+import { resumeLangGraphEngine, type TraceSink } from './audit/engines/langgraph'
 import { needsHumanReview, varianceThreshold } from './audit/pause-rule'
 import { persistAuditRun } from './audit/runs'
 import { sql } from './db/client'
@@ -43,8 +43,11 @@ async function processJob(job: AuditJob, opts: AuditInvoiceOptions = {}): Promis
     return
   }
 
-  const result = await auditInvoice(job.invoiceId, opts)
-  await persistAuditRun(job.invoiceId, result)
+  // The engine fills this in with the run's LangSmith URL when tracing is on.
+  // It cannot ride back on the result: that shape is locked for every engine.
+  const traceSink: TraceSink = { url: null }
+  const result = await auditInvoice(job.invoiceId, { ...opts, traceSink })
+  await persistAuditRun(job.invoiceId, result, traceSink.url)
   // The SAME rule the langgraph engine uses to suspend itself (`audit/pause-rule.ts`).
   // It has to be the same one: if the engine paused a run while this marked the
   // invoice passed, the suspended run would be invisible with no way to resume it.

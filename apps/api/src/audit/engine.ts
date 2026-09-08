@@ -1,6 +1,11 @@
 import type { BaseCheckpointSaver } from '@langchain/langgraph'
 import { loadAuditInput } from './data'
-import { runLangGraphEngine, type AuditGraphDeps, type AuditGraphInput } from './engines/langgraph'
+import {
+  runLangGraphEngine,
+  type AuditGraphDeps,
+  type AuditGraphInput,
+  type TraceSink,
+} from './engines/langgraph'
 import { loadGraphInput } from './engines/langgraph/loaders'
 import { runMockEngine } from './engines/mock'
 import { runStubEngine } from './engines/stub'
@@ -62,6 +67,12 @@ export type AuditInvoiceOptions = {
    * is used; the unit tier passes an in-memory one so it needs no database.
    */
   checkpointer?: BaseCheckpointSaver
+  /**
+   * Filled in with the run's LangSmith trace URL, when there is one. An
+   * out-parameter rather than a field on the result, because the result shape is
+   * locked for every engine — only `langgraph` traces, and only it writes here.
+   */
+  traceSink?: TraceSink
   engine?: EngineName
 }
 
@@ -78,7 +89,7 @@ export async function auditInvoice(
 
   if (engine === 'langgraph') {
     const input = await (opts.graphLoader ?? loadGraphInput)(invoiceId)
-    return runLangGraphEngine(input, opts.graphDeps ?? {}, opts.checkpointer)
+    return runLangGraphEngine(input, opts.graphDeps ?? {}, opts.checkpointer, opts.traceSink)
   }
 
   const loader = opts.loader ?? loadAuditInput
