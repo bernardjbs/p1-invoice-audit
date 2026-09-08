@@ -1,5 +1,4 @@
 import { sql } from '../../../db/client'
-import { downloadInvoicePdf } from '../../../lib/storage'
 import type { ContractRate, PurchaseOrder } from './checks'
 import type { AuditGraphInput } from './graph'
 
@@ -97,7 +96,10 @@ export async function loadGraphInput(invoiceId: string): Promise<AuditGraphInput
   return {
     invoiceId,
     vendorId: row.vendor_id,
-    pdf: await downloadInvoicePdf(row.pdf_path),
+    // The KEY, not the bytes. Downloading here would put the document into the
+    // graph state and therefore into every checkpoint row; the reading node
+    // fetches it instead. See `AuditState.pdfPath`.
+    pdfPath: row.pdf_path,
   }
 }
 

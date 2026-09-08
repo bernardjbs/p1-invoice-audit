@@ -1,3 +1,4 @@
+import type { BaseCheckpointSaver } from '@langchain/langgraph'
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph'
 import type { ExtractedInvoice } from '../../extraction'
 import {
@@ -46,7 +47,14 @@ import {
 export const AuditState = Annotation.Root({
   invoiceId: Annotation<string>,
   vendorId: Annotation<string>,
-  pdf: Annotation<Buffer>,
+  /**
+   * The PDF's storage KEY, never its bytes. Every field in this object is written
+   * to a checkpoint row after every step once the checkpointer is wired, so a
+   * `Buffer` here would serialise the whole document into the database once per
+   * node, per audit, to store a file that already lives in Storage. The reading
+   * node fetches the bytes, uses them and lets them go.
+   */
+  pdfPath: Annotation<string>,
   extracted: Annotation<ExtractedInvoice>,
   po: Annotation<PurchaseOrder | null>,
   rates: Annotation<ContractRate[]>,
@@ -68,8 +76,12 @@ export type AuditStateType = typeof AuditState.State
  * the engine is assembled — this file stays honest about what it depends on.
  */
 export type AuditGraphDeps = {
-  /** Read the invoice fields off the PDF (Claude vision in production). */
-  extract: (pdf: Buffer) => Promise<ExtractedInvoice>
+  /**
+   * Read the invoice fields off the PDF (fetch by storage key, then Claude vision
+   * in production). Takes the KEY rather than the bytes so the bytes never enter
+   * the graph state, and therefore never reach a checkpoint row.
+   */
+  extract: (pdfPath: string) => Promise<ExtractedInvoice>
   /** The purchase order this invoice was raised against, or null if it has none. */
   loadPo: (invoiceId: string) => Promise<PurchaseOrder | null>
   /** The vendor's agreed rate card. */
@@ -112,11 +124,11 @@ function inContractOrder(checks: CheckResult[]): CheckResult[] {
  *   START ──►│           ├──► math · po_match · price · contract_terms ──► aggregate ──► END
  *            └─ load ────┘
  */
-export function buildAuditGraph(deps: AuditGraphDeps) {
+export function buildAuditGraph(deps: AuditGraphDeps, checkpointer?: BaseCheckpointSaver) {
   const CHECK_NODES = ['math', 'po_match', 'price', 'contract_terms'] as const
 
   const graph = new StateGraph(AuditState)
-    .addNode('extract', async (state) => ({ extracted: await deps.extract(state.pdf) }))
+    .addNode('extract', async (state) => ({ extracted: await deps.extract(state.pdfPath) }))
     .addNode('load', async (state) => ({
       po: await deps.loadPo(state.invoiceId),
       rates: await deps.loadRates(state.vendorId),
@@ -140,22 +152,34 @@ export function buildAuditGraph(deps: AuditGraphDeps) {
   // three of them also read what `load` fetched.
   for (const node of CHECK_NODES) graph.addEdge(['extract', 'load'], node)
 
-  return graph.compile()
+  // Optional on purpose: with no checkpointer the graph runs entirely in memory,
+  // which is what lets the unit tier exercise the real wiring with no database
+  // and no credentials. Production passes one; tests mostly do not.
+  return checkpointer === undefined ? graph.compile() : graph.compile({ checkpointer })
 }
 
 /** What one audit run needs. Deliberately narrow: the engine fetches its own facts. */
 export type AuditGraphInput = {
   invoiceId: string
   vendorId: string
-  pdf: Buffer
+  /** Storage key, not bytes — see `AuditState.pdfPath`. */
+  pdfPath: string
 }
 
 /** Run one invoice through the graph and shape the final state into the locked result. */
 export async function runAuditGraph(
   input: AuditGraphInput,
   deps: AuditGraphDeps,
+  checkpointer?: BaseCheckpointSaver,
 ): Promise<AuditResult> {
-  const final = await buildAuditGraph(deps).invoke(input)
+  // THREAD IDENTITY. `thread_id` is the key the saver files this run's state
+  // under, and the key a later process uses to find it again. Using the invoice
+  // id makes that mapping the obvious one: one invoice, one resumable run, no
+  // side table translating between our ids and the engine's. Harmless when no
+  // checkpointer is wired; required the moment one is.
+  const final = await buildAuditGraph(deps, checkpointer).invoke(input, {
+    configurable: { thread_id: input.invoiceId },
+  })
 
   return {
     engine: 'langgraph',

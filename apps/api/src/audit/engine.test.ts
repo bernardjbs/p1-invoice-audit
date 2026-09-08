@@ -96,7 +96,7 @@ const cleanExtracted: ExtractedInvoice = {
 const graphLoader = async (invoiceId: string): Promise<AuditGraphInput> => ({
   invoiceId,
   vendorId: 'vendor-1',
-  pdf: Buffer.from('%PDF-fake'),
+  pdfPath: 'INV-0001.pdf',
 })
 
 const graphDeps: Partial<AuditGraphDeps> = {

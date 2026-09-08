@@ -48,7 +48,7 @@ function cleanDeps(overrides: Partial<AuditGraphDeps> = {}): AuditGraphDeps {
   }
 }
 
-const input = { invoiceId: 'inv-1', vendorId: 'vendor-1', pdf: Buffer.from('%PDF-fake') }
+const input = { invoiceId: 'inv-1', vendorId: 'vendor-1', pdfPath: 'INV-0001.pdf' }
 
 describe('audit graph — the result contract', () => {
   it('returns a result that parses against the locked schema', async () => {
