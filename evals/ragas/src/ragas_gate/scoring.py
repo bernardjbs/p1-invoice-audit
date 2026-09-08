@@ -14,7 +14,7 @@ so 19 ungraded rows and one lucky 0.95 average out to "0.95, passed".
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 
 NOT_APPLICABLE = "n/a"
@@ -45,6 +45,13 @@ class MetricOutcome:
     total: int
     failure: str | None
     """Human-readable cause, or None when the metric passed."""
+    report_only: bool = False
+    """Scored and printed, but not allowed to decide the build.
+
+    Set when the metric is listed in `report_only_metrics`. It carries the fact
+    that the metric was BELOW its bar and was let through anyway, so the report
+    can say so rather than printing a bare pass.
+    """
 
     @property
     def passed(self) -> bool:
@@ -232,12 +239,18 @@ def evaluate_all(
     case_labels: list[str] | None = None,
     per_case_metrics: frozenset[str] = frozenset(),
     report_only_cases: frozenset[str] = frozenset(),
+    report_only_metrics: frozenset[str] = frozenset(),
 ) -> list[MetricOutcome]:
     """Judge every metric that carries a threshold.
 
     A threshold naming a metric absent from the scores is itself a failure: it
     means the harness did not run what the gate believes it is guarding, and
     skipping it silently would leave the gate green while measuring nothing.
+
+    A metric in `report_only_metrics` is scored and printed like any other but
+    cannot fail the build -- the same treatment a report-only CASE gets, one
+    level up. Its threshold is still read, so the bar it would be held to stays
+    on the record for whoever gates it later.
     """
     outcomes: list[MetricOutcome] = []
     for metric, threshold in sorted(thresholds.items()):
@@ -267,9 +280,26 @@ def evaluate_all(
                 )
             )
         else:
+            # An averaged metric must honour the same exclusion the per-case
+            # path does. The two judged metrics are averaged on purpose (one
+            # judged row is noisy), and this path predated report-only, so it
+            # never received the list -- a metric scoring 1.000 on every row the
+            # gate actually guards was reported as 0.750 and failed the build.
+            #
+            # A case that cannot fail the build must not fail it through the
+            # average either. Their scores are still printed in the breakdown.
+            if case_labels is not None and report_only_cases:
+                values = [
+                    value
+                    for value, case in zip(values, case_labels, strict=False)
+                    if case not in report_only_cases
+                ]
             outcomes.append(
                 evaluate_metric(metric, values, threshold, min_graded_fraction)
             )
+
+        if metric in report_only_metrics:
+            outcomes[-1] = replace(outcomes[-1], failure=None, report_only=True)
     return outcomes
 
 
@@ -328,7 +358,14 @@ def format_report(outcomes: list[MetricOutcome]) -> str:
     lines = [f"{'metric':<24} {'mean':>8} {'thresh':>8} {'graded':>10}  result"]
     for o in outcomes:
         mean = "  —" if o.mean is None else f"{o.mean:.3f}"
-        verdict = "PASS" if o.passed else f"FAIL — {o.failure}"
+        if o.report_only:
+            # Never a bare PASS. A metric that is not being judged must not read
+            # as one that was judged and cleared -- that is the same lie the
+            # report-only CASES already taught us to avoid.
+            below = o.mean is not None and o.mean < o.threshold
+            verdict = "reported only, not gating" + (" — below its threshold" if below else "")
+        else:
+            verdict = "PASS" if o.passed else f"FAIL — {o.failure}"
         lines.append(
             f"{o.metric:<24} {mean:>8} {o.threshold:>8.3f} "
             f"{f'{o.graded}/{o.applicable}':>10}  {verdict}"

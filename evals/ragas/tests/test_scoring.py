@@ -8,6 +8,8 @@ comparing NaN to anything is False.
 
 from __future__ import annotations
 
+import pytest
+
 import math
 
 from ragas_gate.scoring import (
@@ -199,3 +201,95 @@ def test_an_unlisted_case_gates_by_default() -> None:
     outcome = evaluate_per_case("verdict_correct", values, labels, 0.9, MIN_COVERAGE, REPORT_ONLY)
     assert not outcome.passed
     assert "some-new-case" in outcome.failure
+
+
+# --- Report-only cases must not decide an AVERAGED metric either -------------
+
+
+def test_a_report_only_case_does_not_drag_an_averaged_metric_down() -> None:
+    """The exclusion existed on the per-row path only.
+
+    The two judged metrics are averaged on purpose -- a single judged row is
+    noisy -- and the averaging path was written before report-only existed, so
+    it never received the list. The effect was a metric scoring 1.000 on every
+    row the gate actually guards being reported as 0.750 and failing the build.
+    """
+    values = [1.0, 1.0, 1.0, 0.0]
+    cases = ["prose-only-breach", "adversarial-breach", "arithmetic", "rate-cap-20pct"]
+    outcome = evaluate_all(
+        {"faithfulness": values},
+        {"faithfulness": 0.9},
+        min_graded_fraction=0.9,
+        case_labels=cases,
+        per_case_metrics=frozenset(),
+        report_only_cases=frozenset({"rate-cap-20pct"}),
+    )[0]
+    assert outcome.mean == 1.0
+    assert outcome.passed
+
+
+def test_a_gating_row_still_drags_an_averaged_metric_down() -> None:
+    """The other direction: excluding report-only must not excuse everything."""
+    outcome = evaluate_all(
+        {"faithfulness": [1.0, 1.0, 1.0, 0.0]},
+        {"faithfulness": 0.9},
+        min_graded_fraction=0.9,
+        case_labels=["clean", "clean", "clean", "prose-only-breach"],
+        per_case_metrics=frozenset(),
+        report_only_cases=frozenset({"rate-cap-20pct"}),
+    )[0]
+    assert not outcome.passed
+
+
+def test_an_averaged_metric_is_unchanged_when_no_case_is_report_only() -> None:
+    outcome = evaluate_all(
+        {"faithfulness": [1.0, 0.0]},
+        {"faithfulness": 0.9},
+        min_graded_fraction=0.9,
+        case_labels=["clean", "clean"],
+        per_case_metrics=frozenset(),
+        report_only_cases=frozenset(),
+    )[0]
+    assert outcome.mean == 0.5
+
+
+# --- A metric can be scored and printed without deciding the build -----------
+
+
+def test_a_report_only_metric_is_scored_but_cannot_fail_the_build() -> None:
+    """Same idea as a report-only case, one level up.
+
+    Faithfulness is undefined on a pass and excluded on four report-only cases,
+    which leaves two rows on the real dataset. A pass/fail line over two rows is
+    noise, not a measurement -- but the number is still worth printing, and
+    deleting the metric would hide it.
+    """
+    outcome = evaluate_all(
+        {"faithfulness": [0.1, 0.1]},
+        {"faithfulness": 0.9},
+        min_graded_fraction=0.9,
+        report_only_metrics=frozenset({"faithfulness"}),
+    )[0]
+    assert outcome.mean == pytest.approx(0.1)
+    assert outcome.passed, "a report-only metric must never fail the build"
+
+
+def test_a_report_only_metric_still_reports_its_score() -> None:
+    """Printing it is the whole point of keeping it."""
+    outcome = evaluate_all(
+        {"faithfulness": [1.0, 1.0]},
+        {"faithfulness": 0.9},
+        min_graded_fraction=0.9,
+        report_only_metrics=frozenset({"faithfulness"}),
+    )[0]
+    assert outcome.mean == pytest.approx(1.0)
+
+
+def test_a_metric_not_listed_as_report_only_still_fails_normally() -> None:
+    outcome = evaluate_all(
+        {"rubric_score": [0.1, 0.1]},
+        {"rubric_score": 0.9},
+        min_graded_fraction=0.9,
+        report_only_metrics=frozenset({"faithfulness"}),
+    )[0]
+    assert not outcome.passed

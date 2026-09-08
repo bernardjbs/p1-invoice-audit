@@ -303,3 +303,24 @@ class TestAppliesFaithfulness:
         the row set would move between runs."""
         row = {"expected_verdict": "breach", "verdict": "pass"}
         assert applies_faithfulness(row) is True
+
+
+def test_the_judge_gets_room_to_finish(tmp_path: Path) -> None:
+    """The adapter's 1024 default truncated faithfulness on two invoices.
+
+    It decomposes an answer into claims and checks each against every clause, so
+    its output grows with the CONTRACT, not with the summary. A truncated reply
+    is recorded as ungraded, so a row quietly stops being measured.
+    """
+    pytest.importorskip("anthropic")
+    from anthropic import AsyncAnthropic
+
+    from ragas_gate.grading import MAX_JUDGE_TOKENS, build_judge
+
+    judge = build_judge(
+        model="claude-haiku-4-5-20251001",
+        client=AsyncAnthropic(api_key="not-a-real-key"),
+        cache_dir=str(tmp_path / "cache"),
+    )
+    assert judge.model_args["max_tokens"] == MAX_JUDGE_TOKENS
+    assert MAX_JUDGE_TOKENS > 1024

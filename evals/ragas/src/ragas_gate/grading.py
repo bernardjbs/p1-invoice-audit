@@ -32,6 +32,8 @@ Re-grading after a threshold tweak must not re-pay for the same judgement, and
 `runs` is the factor with the multiplier in it: rows x metrics x runs.
 """
 
+MAX_JUDGE_TOKENS = 4096
+
 CONCURRENCY = 4
 
 
@@ -185,6 +187,18 @@ def build_judge(
         cache=DiskCacheBackend(cache_dir=cache_dir),
     )
     judge.model_args.pop("top_p", None)
+
+    # The adapter's default cap is 1024, and faithfulness blew through it on two
+    # invoices (2026-09-08): it decomposes an answer into claims and checks each
+    # against every clause, so its output grows with the contract, not with the
+    # summary. A truncated reply is recorded as UNGRADED, which is honest but
+    # means a row can quietly stop being measured.
+    #
+    # This is a cap, not a charge -- generation is billed by what is produced --
+    # so raising it costs nothing unless the judge genuinely needs the room. The
+    # cost lever it appears to contradict is about stopping runaway generation,
+    # and a limit that truncates correct work is the more expensive failure.
+    judge.model_args["max_tokens"] = MAX_JUDGE_TOKENS
     return judge
 
 

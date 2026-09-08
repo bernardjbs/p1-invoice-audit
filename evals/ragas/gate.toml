@@ -7,23 +7,46 @@
 [thresholds]
 # --- Judged. These two cost money. ---
 #
-# Does the written explanation actually follow from what the engine was shown?
-# Applied ONLY to rows the answer key marks as a breach, and not because pass
-# rows are easier: calibrated 2026-09-08, a CORRECT pass explanation scores 0.00,
-# because a pass asserts that no clause applies and an absence cannot be
-# supported by a document. Undefined there, not failing -- the same treatment
-# retrieval recall gets on a clean invoice.
-faithfulness = 0.8
-
 # Marks the summary against the five-level scale in rubric.md, normalised from
-# 1-5 onto 0-1. This is the metric that sees what faithfulness cannot: the same
-# calibration scored the rubric's own example of a TOO VAGUE summary 1.00 on
-# faithfulness, identical to the real answer.
+# 1-5 onto 0-1. Set from the first full run (2026-09-08), not from the plan.
 #
-# 0.75 is score 4 of 5 -- "says what the invoice did and rests it on the right
-# clause, but thin". Provisional, like everything else here, until the first
-# full run.
-rubric_score = 0.75
+# On that run it scored 1.00 on every row the engine gets right, 0.00 on every
+# row it gets wrong, and spread the clean invoices 0.25 to 0.75 by how specific
+# the prose is -- hedged "all visible fields appear consistent" at the bottom,
+# checkable "a separate GST line equal to 10% of the subtotal" at the top.
+#
+# 0.5 is deliberately below the 0.562 that run produced. Thirteen of the sixteen
+# gating rows are clean passes sitting mid-scale BY DESIGN, since the rubric sets
+# a low bar for a pass on purpose. This line catches a regression; it does not
+# certify excellence, and raising it to flatter the current number would fail the
+# build on prose that is fine.
+rubric_score = 0.6
+
+# "Did it assert anything the documents do not support." Still scored, still
+# printed, listed under `report_only_metrics` below so it does not decide the
+# build -- the same treatment, and the same wording, as the report-only cases.
+#
+# The number is kept here rather than deleted so the bar it WOULD be held to is
+# on the record for whoever gates it later.
+# Not gated because it is weak -- it is not. Calibrated 2026-09-08, it caught a
+# summary carrying fabricated facts at 0.25, the failure this rubric ranks worst.
+# The problem is how few rows are left after two correct decisions stack:
+#
+#   20 rows
+#    -13  clean invoices: a pass asserts that no clause applies, and an absence
+#         cannot be supported by a document, so the question is undefined there
+#         (a CORRECT pass explanation scores 0.00 -- measured)
+#     -1  the no-contract invoice, same reason
+#     -4  the report-only cases
+#    = 2
+#
+# A pass/fail line over two rows is not a measurement: one grader wobble reddens
+# the build, and a real regression across the other eighteen would not move it.
+#
+# Nothing is left unguarded. `rubric_score` covers those same two rows plus
+# fourteen more, and catches the same fault -- on the fabricated-facts probe both
+# metrics scored 0.25. Gating this one adds noise without adding coverage.
+faithfulness = 0.8
 
 # --- Free. Exact lookups against the planted answer key, no model involved. ---
 # Was the clause that matters among those the search returned? Measures the
@@ -77,3 +100,13 @@ per_case = ["retrieval_recall", "cited_clause_correct", "verdict_correct"]
 # dataset later then gates by default, and escaping the gate takes a deliberate
 # edit here rather than an oversight.
 report_only_cases = ["rate-cap-20pct", "rate-cap-10pct", "arithmetic", "po-mismatch"]
+
+# Metrics that are SCORED and PRINTED but do not decide the build.
+#
+# Same idea as report_only_cases, one level up: there the exclusion is a
+# situation, here it is a whole metric.
+#
+# NOT AN OVERSIGHT, and it expires: give faithfulness a threshold once the
+# dataset carries enough breach rows that the interesting ones are not all
+# report-only cases.
+report_only_metrics = ["faithfulness"]

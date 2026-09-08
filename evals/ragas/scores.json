@@ -5,13 +5,13 @@
       "invoice_number": "INV-0001",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.5
+      "rubric_score": 0.75
     },
     {
       "invoice_number": "INV-0002",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.5
+      "rubric_score": 0.75
     },
     {
       "invoice_number": "INV-0003",
@@ -23,19 +23,19 @@
       "invoice_number": "INV-0004",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.25
+      "rubric_score": 0.75
     },
     {
       "invoice_number": "INV-0005",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.5
+      "rubric_score": 0.25
     },
     {
       "invoice_number": "INV-0006",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.75
+      "rubric_score": 0.5
     },
     {
       "invoice_number": "INV-0007",
@@ -53,13 +53,13 @@
       "invoice_number": "INV-0009",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.25
+      "rubric_score": 0.75
     },
     {
       "invoice_number": "INV-0010",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.25
+      "rubric_score": 0.5
     },
     {
       "invoice_number": "INV-0011",
@@ -71,7 +71,7 @@
       "invoice_number": "INV-0012",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.25
+      "rubric_score": 1.0
     },
     {
       "invoice_number": "INV-0013",
@@ -82,25 +82,25 @@
     {
       "invoice_number": "INV-0016",
       "case": "rate-cap-20pct",
-      "faithfulness": 0.6,
+      "faithfulness": 0.7857142857142857,
       "rubric_score": 0.0
     },
     {
       "invoice_number": "INV-0017",
       "case": "rate-cap-10pct",
-      "faithfulness": 0.4,
+      "faithfulness": 0.45454545454545453,
       "rubric_score": 0.0
     },
     {
       "invoice_number": "INV-0018",
       "case": "arithmetic",
-      "faithfulness": 1.0,
+      "faithfulness": 0.8571428571428571,
       "rubric_score": 1.0
     },
     {
       "invoice_number": "INV-0019",
       "case": "po-mismatch",
-      "faithfulness": 0.5,
+      "faithfulness": 0.45,
       "rubric_score": 0.0
     },
     {

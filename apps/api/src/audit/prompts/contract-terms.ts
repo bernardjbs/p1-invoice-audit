@@ -34,7 +34,10 @@ Rules:
 - Judge ONLY against the clauses shown. If a clause you would need is not present, do not assume it.
 - Do not perform arithmetic. Sums, totals and rate comparisons are checked elsewhere; a charge being large is not itself a breach.
 - Do not write a contract or clause reference in your summary. Give the number in "clause" and nothing else; the reference itself is attached from our own records.
-- The summary is one or two sentences, addressed to a finance reviewer, naming what on the invoice concerns you.`
+- The summary is one or two sentences, addressed to a finance reviewer.
+- For "flag" or "fail", name the specific thing on the invoice that concerns you, not merely that something is wrong.
+- For "pass", say which clauses you considered and what the invoice does that satisfies them. A reviewer must be able to check your reasoning, so name the terms you tested against and what you found.
+- State what you checked, do not hedge about it. "Appears consistent", "no issues visible" and "all required elements are present" tell a reviewer nothing they could verify or disagree with.`
 
 /**
  * Fences the two untrusted blocks and labels them as material to analyse.

@@ -43,7 +43,9 @@ EXIT_MISCONFIGURED = 2
 """The gate could not run: no rubric, no config, unreadable scores."""
 
 
-def load_config(path: Path) -> tuple[dict[str, float], float, frozenset[str], frozenset[str]]:
+def load_config(
+    path: Path,
+) -> tuple[dict[str, float], float, frozenset[str], frozenset[str], frozenset[str]]:
     if not path.is_file():
         raise FileNotFoundError(f"no gate config at {path}")
     data = tomllib.loads(path.read_text())
@@ -53,7 +55,10 @@ def load_config(path: Path) -> tuple[dict[str, float], float, frozenset[str], fr
     min_graded = float(data.get("gate", {}).get("min_graded_fraction", 0.9))
     per_case = frozenset(str(m) for m in data.get("gate", {}).get("per_case", []))
     report_only = frozenset(str(c) for c in data.get("gate", {}).get("report_only_cases", []))
-    return thresholds, min_graded, per_case, report_only
+    report_only_metrics = frozenset(
+        str(m) for m in data.get("gate", {}).get("report_only_metrics", [])
+    )
+    return thresholds, min_graded, per_case, report_only, report_only_metrics
 
 
 def load_scores(path: Path) -> tuple[dict[str, list[Score]], list[str]]:
@@ -196,7 +201,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        thresholds, min_graded, per_case_metrics, report_only = load_config(args.config)
+        (
+            thresholds,
+            min_graded,
+            per_case_metrics,
+            report_only,
+            report_only_metrics,
+        ) = load_config(args.config)
     except (FileNotFoundError, ValueError) as err:
         print(f"ragas-gate: {err}", file=sys.stderr)
         return EXIT_MISCONFIGURED
@@ -247,7 +258,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"ragas-gate: free metrics over {len(case_labels)} dataset rows, no model called.")
 
         return report(
-            by_metric, case_labels, thresholds, min_graded, per_case_metrics, report_only
+            by_metric,
+            case_labels,
+            thresholds,
+            min_graded,
+            per_case_metrics,
+            report_only,
+            report_only_metrics,
         )
 
     scores_path: Path
@@ -279,7 +296,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ragas-gate: cannot read scores at {scores_path}: {err}", file=sys.stderr)
         return EXIT_MISCONFIGURED
 
-    return report(by_metric, case_labels, thresholds, min_graded, per_case_metrics, report_only)
+    return report(
+        by_metric,
+        case_labels,
+        thresholds,
+        min_graded,
+        per_case_metrics,
+        report_only,
+        report_only_metrics,
+    )
 
 
 def run_grading(dataset: Path, out: Path, model: str | None, rubric: str) -> Path:
@@ -328,9 +353,16 @@ def report(
     min_graded: float,
     per_case_metrics: frozenset[str],
     report_only: frozenset[str],
+    report_only_metrics: frozenset[str] = frozenset(),
 ) -> int:
     outcomes = evaluate_all(
-        by_metric, thresholds, min_graded, case_labels, per_case_metrics, report_only
+        by_metric,
+        thresholds,
+        min_graded,
+        case_labels,
+        per_case_metrics,
+        report_only,
+        report_only_metrics,
     )
     print(format_report(outcomes))
 
