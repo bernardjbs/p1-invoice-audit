@@ -130,7 +130,7 @@ function parseJudgement(reply: string): z.infer<typeof JudgementSchema> {
 }
 
 /** Claude through LangChain, imported lazily so the unit tier needs no credentials. */
-function claudeJudge(model: string): ClauseJudge {
+export function claudeJudge(model: string): ClauseJudge {
   return async (system, prompt) => {
     const [{ ChatAnthropic }, { serverEnv }] = await Promise.all([
       import('@langchain/anthropic'),

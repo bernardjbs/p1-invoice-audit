@@ -43,6 +43,13 @@ function keyFor(parts: string[]): string {
 
 export type CacheStats = { hits: number; misses: number }
 
+/**
+ * Any model call shaped as two strings in, one string out. Both the invoice
+ * reader (document, prompt) and the clause judge (system, prompt) fit, so one
+ * cache serves both rather than two near-identical ones drifting apart.
+ */
+export type TextCall = (first: string, second: string) => Promise<string>
+
 export type CacheOptions = {
   /** `--no-cache` sets this false for an honest full-price run. */
   enabled?: boolean
@@ -59,19 +66,15 @@ export type CacheOptions = {
  * spend report that reads as "nothing was spent" precisely when the most was
  * spent is worse than no report at all.
  */
-export function cachingReader(
-  inner: InvoiceReader,
-  model: string,
-  opts: CacheOptions = {},
-): InvoiceReader {
+export function cachingCall(inner: TextCall, model: string, opts: CacheOptions = {}): TextCall {
   if (opts.enabled === false) {
-    return async (pdfBase64, prompt) => {
+    return async (first, second) => {
       if (opts.stats) opts.stats.misses += 1
-      return inner(pdfBase64, prompt)
+      return inner(first, second)
     }
   }
-  return async (pdfBase64, prompt) => {
-    const path = join(cacheDir(), `${keyFor([model, prompt, pdfBase64])}.json`)
+  return async (first, second) => {
+    const path = join(cacheDir(), `${keyFor([model, first, second])}.json`)
     try {
       const hit = JSON.parse(await readFile(path, 'utf8')) as { reply: string }
       if (opts.stats) opts.stats.hits += 1
@@ -80,7 +83,7 @@ export function cachingReader(
       // Any failure to read a cache entry — absent, truncated, unparseable — is
       // a miss. A cache must never be able to fail the thing it accelerates.
     }
-    const reply = await inner(pdfBase64, prompt)
+    const reply = await inner(first, second)
     if (opts.stats) opts.stats.misses += 1
     try {
       await mkdir(dirname(path), { recursive: true })
@@ -88,13 +91,27 @@ export function cachingReader(
       // an entry is; only the key decides what is served.
       await writeFile(
         path,
-        JSON.stringify({ model, promptExcerpt: prompt.slice(0, 120), reply }, null, 2),
+        JSON.stringify({ model, promptExcerpt: second.slice(0, 120), reply }, null, 2),
       )
     } catch (err) {
       console.warn(`[cache] could not write ${path}:`, err)
     }
     return reply
   }
+}
+
+/** The invoice reader, cached. Named for its caller so the eval reads plainly. */
+export function cachingReader(
+  inner: InvoiceReader,
+  model: string,
+  opts: CacheOptions = {},
+): InvoiceReader {
+  return cachingCall(inner, model, opts)
+}
+
+/** The clause judge, cached. Same machinery, different caller. */
+export function cachingJudge(inner: TextCall, model: string, opts: CacheOptions = {}): TextCall {
+  return cachingCall(inner, model, opts)
 }
 
 export function newStats(): CacheStats {
