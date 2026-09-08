@@ -77,17 +77,26 @@ const ARITHMETIC_BREACH: Fixture = {
  * criterion 3: the contract-terms check retrieves from the MSA corpus through
  * pgvector and cites what it retrieved.
  *
- * WHY THIS INVOICE IS ARITHMETICALLY PERFECT. That is the entire point. Lines sum
- * to the subtotal, GST is exactly 10%, the total adds up, and the pump is billed
- * at Pilbara's contracted rate of $5,000.00 to the cent, so all three
- * deterministic checks pass it. The only thing wrong with this invoice is a thing
- * no sum can find.
+ * WHY THIS INVOICE IS ARITHMETICALLY PERFECT. Lines sum to the subtotal, GST is
+ * exactly 10%, the total adds up, and the pump is billed at Pilbara's contracted
+ * rate of $5,000.00 to the cent, so `math` and `price_vs_contract` both pass it.
+ *
+ * `po_match` still FLAGS, and no fixture can prevent that: the upload form has no
+ * PO field, so nothing uploaded through the UI carries one. So this is not an
+ * invoice whose only defect is invisible to arithmetic; it is an invoice whose
+ * only defect in the CONTRACT dimension is.
  *
  * WHY THE CALL-OUT LINE. Pilbara's MSA-1000 §6 ("Hours of Work and Surcharges")
  * forbids any surcharge, loading, penalty or call-out fee for out-of-hours work
  * without prior written approval. `CALLOUT-WE` is on no rate card, so the price
- * check has nothing to compare it against and skips it. Only reading §6 catches
- * this invoice.
+ * check has nothing to compare it against and skips it: no sum on this page finds
+ * the call-out charge, only reading §6 does.
+ *
+ * The missing PO is visible to the model too, because `renderInvoice` omits the
+ * PO line when there is none, so §2 (payment terms) and §4 (purchase orders
+ * required) are breachable on that ground alone. Every measured run has cited §6,
+ * but the spec deliberately does not pin the clause, so a green run is not by
+ * itself proof that §6 was the clause that mattered.
  *
  * WHY PILBARA. It is one of the four vendors the seed gives a contract (8 chunks;
  * the other two have none, and a vendor with no clauses makes the check

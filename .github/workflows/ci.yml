@@ -124,7 +124,17 @@ jobs:
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
           AUDIT_ENGINE: langgraph
-        run: doppler run -p p1-invoice-audit -c ci -- bun run e2e
+          PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-report.json
+        run: doppler run -p p1-invoice-audit -c ci -- bun run e2e --reporter=list,json
+
+      # The `AUDIT_ENGINE` above is the ONLY thing making the criterion-3 spec
+      # execute; it skips itself otherwise. Delete or typo that one line and this
+      # job reports "1 skipped, 2 passed", exits 0, and is indistinguishable from
+      # the mock job where skipping is correct, so the criterion would be claimed
+      # forever by a run that never touched pgvector. A skipped test is not a
+      # failure to any runner, so no exit code can catch this. The report can.
+      - name: Assert the criterion-3 spec actually ran
+        run: bun run scripts/assert-criterion3-ran.ts playwright-report.json
 
       - uses: actions/upload-artifact@v4
         if: failure()

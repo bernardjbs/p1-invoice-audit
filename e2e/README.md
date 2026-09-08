@@ -35,14 +35,31 @@ the API and web dev servers are started as Playwright `webServer`s.
   own. Read `fixtures/README.md` on what these four check cards do and do not
   prove before changing anything there.
 
-- `contract-citation.spec.ts`: golden criterion 3. Uploads
-  `fixtures/clause-breach-invoice.pdf` (Pilbara Pumps, billing a weekend call-out
-  loading that MSA-1000 §6 forbids) and asserts the contract-terms card renders a
-  citation of the clause retrieved from the corpus, and that the evidence is not
-  the "no clauses on file" short-circuit. **Self-gating**: it skips itself unless
-  `AUDIT_ENGINE=langgraph`, because the mock engine emits no `sourceRef` at all
-  and putting this in `audit-flow` would redden the cheap tier. A plain
-  `bun run e2e` reports it as skipped, visibly, rather than not existing.
+- `contract-citation.spec.ts`: the citation half of golden criterion 3 (see
+  below). Uploads `fixtures/clause-breach-invoice.pdf` (Pilbara Pumps, billing a
+  weekend call-out loading that MSA-1000 §6 forbids) and asserts the
+  contract-terms card renders a citation of a clause retrieved from the corpus,
+  and that the evidence is not the "no clauses on file" short-circuit.
+  **Self-gating**: it skips itself unless `AUDIT_ENGINE=langgraph`, because the
+  mock engine emits no `sourceRef` at all and putting this in `audit-flow` would
+  redden the cheap tier. A plain `bun run e2e` reports it as skipped, visibly,
+  rather than not existing.
+
+## Criterion 3 is proven at two tiers, not one
+
+| Half                                                                            | Proven by                       |
+| ------------------------------------------------------------------------------- | ------------------------------- |
+| Clauses reach a model, the verdict cites one, and the citation reaches the page | `contract-citation.spec.ts`     |
+| The clauses are selected by **embedding distance**, scoped to the vendor        | `retrieval.integration.test.ts` |
+
+The e2e spec cannot prove the pgvector half: with the ordering removed from
+`retrieval.ts`, Pilbara's eight chunks still come back and the spec stays green.
+Ticking the criterion needs both rows.
+
+Because the spec self-gates, a run that forgets `AUDIT_ENGINE=langgraph` reports
+it as skipped and still **exits 0**. The `langgraph-e2e` CI job therefore runs
+`scripts/assert-criterion3-ran.ts` over the JSON report, which fails the job if
+the spec did not actually run and pass.
 
 ## The real engine
 
