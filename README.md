@@ -12,7 +12,7 @@ requirements.
 
 > **What is actually deployed:** the full application — database, synthetic AU corpus, generated
 > invoice PDFs, API, queue-driven worker, React frontend — with the audit engine **mocked** behind a
-> single seam. The real LangGraph engine is built and green locally (8 of 15 tasks) and replaces the
+> single seam. The real LangGraph engine is built and green locally (10 of 15 tasks) and replaces the
 > mock at the end of that phase. This README says which parts are live and which are local, because a
 > portfolio that overstates itself is worse than one that ships less.
 
@@ -158,12 +158,20 @@ and nothing else — which is the point of building the same app three times.
 
 ## Status
 
-Phase A shipped and deployed. Phase B (the real engine) is 8 of 15 tasks: extraction with its eval
+Phase A shipped and deployed. Phase B (the real engine) is 10 of 15 tasks: extraction with its eval
 gate, the deterministic checks, the retrieval seam, the contract corpus, the RAG agent, and
 injection containment are all built and green — and as of 2026-09-07 they are wired into one
 LangGraph state graph behind the seam, so `AUDIT_ENGINE=langgraph` runs a real audit end to end
-locally. Durable human-in-the-loop, the RAGAS evaluation gate,
-tracing, notifications and the deploy are still ahead.
+locally.
+
+Since then the real engine has passed the Phase A acceptance suite **unchanged** — the seam's whole
+point, proved by not editing a test to make it green — and the audit has become durable: it suspends
+itself when an invoice needs a person, saves its state to Postgres, and is finished later by a
+different process. That last part is proved by killing the worker mid-pause and resuming from a
+fresh one.
+
+The RAGAS evaluation gate, tracing, notifications and the deploy are still ahead. **Continuous
+integration for the real-engine suite is written but has not yet run.**
 
 ---
 
