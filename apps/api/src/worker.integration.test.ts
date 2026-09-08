@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { app } from './app'
 import { sql } from './db/client'
-import { enqueueAudit, queueDepth } from './queue/audit-queue'
+import { enqueueAudit, queueDepth, queueDepthForInvoices } from './queue/audit-queue'
 import { runWorkerOnce } from './worker'
 
 /**
@@ -82,7 +82,13 @@ describe('runWorkerOnce', () => {
     expect(count!.n).toBe(4)
   })
 
-  it('leaves the queue empty after draining', async () => {
-    expect(await queueDepth()).toBe(0)
+  it('leaves none of its own jobs queued after draining', async () => {
+    // Scoped to THIS file's invoices on purpose. The global depth is not a
+    // property this spec can assert: the restart spec leaves a deliberately
+    // in-flight job behind (read, unarchived, hidden until its visibility
+    // timeout expires), so a global "queue is empty" check passed or failed on
+    // timing alone. What this file can honestly claim is that it drained what
+    // it enqueued.
+    expect(await queueDepthForInvoices([cleanId, unapprovedId])).toBe(0)
   })
 })

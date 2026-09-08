@@ -62,3 +62,25 @@ export async function queueDepth(): Promise<number> {
   const [row] = await sql<{ n: number }[]>`select count(*)::int as n from pgmq.q_audit_jobs`
   return row!.n
 }
+
+/**
+ * Active queue depth for specific invoices only.
+ *
+ * Exists because `queueDepth()` is global, and a spec asserting the global depth
+ * is zero cannot be made reliable: `worker-restart.integration.test.ts` SIGKILLs
+ * a worker AFTER it has read a job and BEFORE it can archive it, which is the
+ * whole point of that test — the job survives, hidden by its visibility timeout,
+ * until redelivery. It is a row in the queue that no drain can see, so a later
+ * spec's "the queue is empty" assertion failed or passed purely on how much of
+ * the 30-second timeout had elapsed. Measured 2026-09-08: one run in three.
+ *
+ * A spec that wants to prove IT left nothing behind must therefore ask about its
+ * OWN jobs, not the queue as a whole.
+ */
+export async function queueDepthForInvoices(invoiceIds: string[]): Promise<number> {
+  if (invoiceIds.length === 0) return 0
+  const [row] = await sql<{ n: number }[]>`
+    select count(*)::int as n from pgmq.q_audit_jobs
+    where message->>'invoiceId' in ${sql(invoiceIds)}`
+  return row!.n
+}
