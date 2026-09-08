@@ -43,10 +43,10 @@
     {
       "invoice_number": "INV-0006",
       "case": "prose-only-breach",
-      "faithfulness": 0.88,
+      "faithfulness": 0.1,
       "retrieval_recall": 1.0,
-      "cited_clause_correct": 1.0,
-      "verdict_correct": 1.0
+      "cited_clause_correct": 0.0,
+      "verdict_correct": 0.0
     },
     {
       "invoice_number": "INV-0007",

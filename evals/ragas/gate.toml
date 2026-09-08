@@ -1,17 +1,48 @@
-# Thresholds the CI gate enforces. Copied from the plan, with one correction.
+# Thresholds the CI gate enforces.
+#
+# Every value below is PROVISIONAL until the first real grading run. The plan's
+# rule stands: tune from the first run and record the before/after. A threshold
+# copied from a plan is a guess wearing a decimal point.
+
 [thresholds]
-# From the plan, unchanged.
+# --- Judged. The only metric that costs money. ---
+# Does the written explanation actually follow from the clause it cites? This is
+# the one question no lookup can answer, because it is about meaning.
 faithfulness = 0.8
 
-# PROVISIONAL — do not read this as a considered value.
-# The plan says "context relevancy >= 0.7", but that metric no longer exists in
-# ragas 0.4.3; its apparent successor scores on a different scale, so 0.7 is a
-# number inherited from a metric we are not using. Re-derive it from the first
-# real grading run and record the before/after. Measured 2026-09-08.
-context_relevance = 0.7
+# --- Free. Exact lookups against the planted answer key, no model involved. ---
+# Was the clause that matters among those the search returned? Measures the
+# retrieval half. A miss here is fixed by embeddings and search, not the prompt.
+retrieval_recall = 0.9
+# Did it rest its verdict on the right clause, given the chance to? A miss here
+# is fixed by the prompt, not the search -- which is why it is separate.
+cited_clause_correct = 0.9
+# Did it reach the right conclusion at all?
+verdict_correct = 0.9
 
 [gate]
-# A mean over a handful of surviving rows is not a mean over the dataset. If
-# fewer than this many rows graded, the gate fails regardless of the average --
-# otherwise a collapse of the grading step reads as a pass.
-min_graded_rows = 18
+# A mean over a handful of surviving rows is not a mean over the dataset. At
+# least this share of the rows a metric APPLIES to must actually have graded, or
+# the gate fails regardless of the average -- otherwise a collapse of the
+# grading step reads as a pass.
+#
+# A fraction of applicable rows, not a count of all rows: retrieval recall is
+# undefined on a clean invoice (no clause to find), so it applies to 7 of the 20
+# rows. An absolute floor would fail it permanently while it worked perfectly.
+min_graded_fraction = 0.9
+
+# Metrics held to the threshold on EVERY case, not on the dataset average.
+#
+# The dataset is deliberately unbalanced: thirteen of twenty rows are clean
+# invoices, because that is where a false breach would be invented. An average
+# over that is dominated by the easy case. Measured on fabricated scores: a
+# completely wrong prose-only-breach row -- wrong verdict, wrong clause, 0.10
+# faithfulness -- was carried to an overall 0.95 by its nineteen well-behaved
+# neighbours, and the gate passed. That row is the only one the contract-terms
+# agent exists to get right.
+#
+# The exact lookups go here, where a miss is a real defect. Faithfulness stays
+# on the aggregate: it is a judged score on a single row for most cases, so
+# per-case enforcement would fail the build on grader noise. Its per-case
+# breakdown is always printed instead.
+per_case = ["retrieval_recall", "cited_clause_correct", "verdict_correct"]

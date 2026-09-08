@@ -1,84 +1,164 @@
 {
   "rows": [
     {
+      "invoice_number": "INV-0001",
+      "case": "rate-cap-20pct",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": null,
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0002",
+      "case": "rate-cap-10pct",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": null,
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0003",
+      "case": "arithmetic",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": null,
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0004",
+      "case": "po-mismatch",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": null,
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0005",
+      "case": "no-contract",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": "n/a",
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0006",
+      "case": "prose-only-breach",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": null,
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0007",
+      "case": "adversarial-breach",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": null,
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0008",
+      "case": "clean",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": "n/a",
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0009",
+      "case": "clean",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": "n/a",
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0010",
+      "case": "clean",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": "n/a",
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0011",
+      "case": "clean",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": "n/a",
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0012",
+      "case": "clean",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": "n/a",
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0013",
+      "case": "clean",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": "n/a",
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0014",
+      "case": "clean",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": "n/a",
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0015",
+      "case": "clean",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": "n/a",
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0016",
+      "case": "clean",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": "n/a",
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0017",
+      "case": "clean",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": "n/a",
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0018",
+      "case": "clean",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": "n/a",
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0019",
+      "case": "clean",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": "n/a",
+      "cited_clause_correct": null,
+      "verdict_correct": null
     },
     {
+      "invoice_number": "INV-0020",
+      "case": "clean",
       "faithfulness": null,
-      "context_relevance": null
+      "retrieval_recall": "n/a",
+      "cited_clause_correct": null,
+      "verdict_correct": null
     }
   ]
 }

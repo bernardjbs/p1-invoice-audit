@@ -10,15 +10,22 @@ from __future__ import annotations
 
 import math
 
-from ragas_gate.scoring import evaluate_all, evaluate_metric, mean_of_graded
+from ragas_gate.scoring import (
+    NOT_APPLICABLE,
+    evaluate_all,
+    evaluate_metric,
+    evaluate_per_case,
+    mean_of_graded,
+)
 
 NAN = float("nan")
 THRESHOLD = 0.8
-MIN_GRADED = 18
+# A share of the rows the metric APPLIES to, not a count of all rows.
+MIN_COVERAGE = 0.9
 
 
 def test_every_row_ungraded_fails_rather_than_passing_vacuously() -> None:
-    outcome = evaluate_metric("faithfulness", [NAN] * 20, THRESHOLD, MIN_GRADED)
+    outcome = evaluate_metric("faithfulness", [NAN] * 20, THRESHOLD, MIN_COVERAGE)
     assert not outcome.passed
     assert outcome.graded == 0
     assert "no rows graded" in outcome.failure
@@ -31,27 +38,27 @@ def test_one_lucky_row_does_not_stand_in_for_the_dataset() -> None:
     that as a pass would certify twenty rows on the evidence of one.
     """
     values = [NAN] * 19 + [0.95]
-    outcome = evaluate_metric("faithfulness", values, THRESHOLD, MIN_GRADED)
+    outcome = evaluate_metric("faithfulness", values, THRESHOLD, MIN_COVERAGE)
     assert not outcome.passed
     assert outcome.graded == 1
-    assert "below the minimum" in outcome.failure
+    assert "applicable rows graded" in outcome.failure
 
 
 def test_a_threshold_naming_a_metric_nobody_ran_fails() -> None:
-    outcomes = evaluate_all({"faithfulness": [0.9] * 20}, {"context_relevance": 0.7}, MIN_GRADED)
+    outcomes = evaluate_all({"faithfulness": [0.9] * 20}, {"context_relevance": 0.7}, MIN_COVERAGE)
     assert len(outcomes) == 1
     assert not outcomes[0].passed
     assert "nobody ran" in outcomes[0].failure
 
 
 def test_genuinely_poor_answers_fail() -> None:
-    outcome = evaluate_metric("faithfulness", [0.2] * 20, THRESHOLD, MIN_GRADED)
+    outcome = evaluate_metric("faithfulness", [0.2] * 20, THRESHOLD, MIN_COVERAGE)
     assert not outcome.passed
     assert "below the threshold" in outcome.failure
 
 
 def test_good_answers_pass() -> None:
-    outcome = evaluate_metric("faithfulness", [0.9] * 20, THRESHOLD, MIN_GRADED)
+    outcome = evaluate_metric("faithfulness", [0.9] * 20, THRESHOLD, MIN_COVERAGE)
     assert outcome.passed
     assert outcome.graded == 20
     assert outcome.mean == 0.9
@@ -60,14 +67,14 @@ def test_good_answers_pass() -> None:
 def test_a_couple_of_ungraded_rows_are_tolerated_and_reported() -> None:
     """Two rows fail to grade; 18 still graded, which meets the minimum."""
     values: list[float | None] = [0.9] * 18 + [NAN, None]
-    outcome = evaluate_metric("faithfulness", values, THRESHOLD, MIN_GRADED)
+    outcome = evaluate_metric("faithfulness", values, THRESHOLD, MIN_COVERAGE)
     assert outcome.passed
     assert outcome.graded == 18
     assert outcome.total == 20
 
 
 def test_exactly_on_the_threshold_passes() -> None:
-    outcome = evaluate_metric("faithfulness", [0.8] * 20, THRESHOLD, MIN_GRADED)
+    outcome = evaluate_metric("faithfulness", [0.8] * 20, THRESHOLD, MIN_COVERAGE)
     assert outcome.passed
 
 
@@ -81,3 +88,65 @@ def test_mean_never_returns_nan() -> None:
     result = mean_of_graded([NAN] * 5)
     assert result is None
     assert not (isinstance(result, float) and math.isnan(result))
+
+def test_not_applicable_rows_do_not_look_like_a_grading_collapse() -> None:
+    """The bug this distinction exists for, found by the guard itself.
+
+    Retrieval recall is undefined on a clean invoice, and 13 of the 20 rows are
+    clean. Treating "does not apply" as "failed to grade" made a perfectly
+    healthy dataset report 7/20 graded and trip the coverage guard — the guard
+    that exists to catch a real collapse of the grading step.
+    """
+    values = [1.0] * 7 + [NOT_APPLICABLE] * 13
+    outcome = evaluate_metric("retrieval_recall", values, THRESHOLD, MIN_COVERAGE)
+    assert outcome.passed
+    assert outcome.applicable == 7
+    assert outcome.graded == 7
+    assert outcome.total == 20
+
+
+def test_a_metric_that_applies_to_nothing_fails() -> None:
+    """Guarding a metric no row exercises is guarding nothing."""
+    outcome = evaluate_metric("retrieval_recall", [NOT_APPLICABLE] * 20, THRESHOLD, MIN_COVERAGE)
+    assert not outcome.passed
+    assert "guards nothing" in outcome.failure
+
+
+def test_coverage_is_measured_against_applicable_rows_not_all_rows() -> None:
+    """7 applicable, 3 of them ungraded: 57% coverage, so it fails."""
+    values = [1.0] * 4 + [NAN] * 3 + [NOT_APPLICABLE] * 13
+    outcome = evaluate_metric("retrieval_recall", values, THRESHOLD, MIN_COVERAGE)
+    assert not outcome.passed
+    assert outcome.applicable == 7
+    assert "4 of 7 applicable" in outcome.failure
+
+
+def test_per_case_skips_cases_the_metric_does_not_apply_to() -> None:
+    """Clean invoices have no clause to retrieve, and that must not fail the case.
+
+    At dataset level "applies to nothing" is a real failure; at case level it is
+    routine. Getting this wrong made retrieval recall permanently red while it
+    was working perfectly.
+    """
+    values = [1.0] * 6 + [NOT_APPLICABLE] * 13
+    labels = ["prose-only-breach"] + ["other"] * 5 + ["clean"] * 13
+    outcome = evaluate_per_case("retrieval_recall", values, labels, THRESHOLD, MIN_COVERAGE)
+    assert outcome.passed
+    assert outcome.applicable == 6
+
+
+def test_per_case_fails_when_one_case_is_wrong_even_if_the_average_passes() -> None:
+    """The hole this function exists to close.
+
+    19 rows correct, one wrong. The average is 0.95 against a 0.90 bar, so the
+    aggregate gate passes — and the wrong row is the prose-only breach, the only
+    row the contract-terms agent exists to get right.
+    """
+    values = [0.0] + [1.0] * 19
+    labels = ["prose-only-breach"] + ["clean"] * 19
+    assert evaluate_metric("verdict_correct", values, 0.9, MIN_COVERAGE).passed
+    per_case = evaluate_per_case("verdict_correct", values, labels, 0.9, MIN_COVERAGE)
+    assert not per_case.passed
+    assert "prose-only-breach" in per_case.failure
+    # The reported mean is the worst case's, not the flattering average.
+    assert per_case.mean == 0.0

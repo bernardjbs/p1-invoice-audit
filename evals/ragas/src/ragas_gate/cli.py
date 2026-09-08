@@ -23,7 +23,7 @@ import sys
 import tomllib
 from pathlib import Path
 
-from .scoring import evaluate_all, format_report
+from .scoring import NOT_APPLICABLE, Score, evaluate_all, format_case_breakdown, format_report
 
 HERE = Path(__file__).resolve().parent.parent.parent
 RUBRIC = HERE / "rubric.md"
@@ -36,32 +36,45 @@ EXIT_MISCONFIGURED = 2
 """The gate could not run: no rubric, no config, unreadable scores."""
 
 
-def load_config(path: Path) -> tuple[dict[str, float], int]:
+def load_config(path: Path) -> tuple[dict[str, float], float, frozenset[str]]:
     if not path.is_file():
         raise FileNotFoundError(f"no gate config at {path}")
     data = tomllib.loads(path.read_text())
     thresholds = {str(k): float(v) for k, v in data.get("thresholds", {}).items()}
     if not thresholds:
         raise ValueError(f"{path} declares no thresholds — the gate would guard nothing")
-    min_graded = int(data.get("gate", {}).get("min_graded_rows", 0))
-    return thresholds, min_graded
+    min_graded = float(data.get("gate", {}).get("min_graded_fraction", 0.9))
+    per_case = frozenset(str(m) for m in data.get("gate", {}).get("per_case", []))
+    return thresholds, min_graded, per_case
 
 
-def load_scores(path: Path) -> dict[str, list[float | None]]:
-    """Read a saved scores file.
+def load_scores(path: Path) -> tuple[dict[str, list[Score]], list[str]]:
+    """Read a saved scores file, and the case label of each row.
 
     Grading a saved file rather than a live run is deliberate: re-running the
     engine to re-grade would re-pay for reading every invoice PDF.
+
+    `case` is metadata, not a metric — it says which situation the row exercises
+    so the report can be grouped. Rows without one are labelled `unlabelled`
+    rather than dropped, so an older scores file still grades.
     """
     raw = json.loads(path.read_text())
     rows = raw["rows"] if isinstance(raw, dict) else raw
-    by_metric: dict[str, list[float | None]] = {}
+    by_metric: dict[str, list[Score]] = {}
+    case_labels: list[str] = []
     for row in rows:
+        case_labels.append(str(row.get("case", "unlabelled")))
         for metric, value in row.items():
-            by_metric.setdefault(metric, []).append(
-                None if value is None else float(value)
-            )
-    return by_metric
+            if metric in ("case", "invoice_number"):
+                continue
+            # Three distinct states, and they must survive the read: a number,
+            # None for attempted-but-ungraded, and the not-applicable marker for
+            # a metric this row does not exercise.
+            if value is None or value == NOT_APPLICABLE:
+                by_metric.setdefault(metric, []).append(value)
+            else:
+                by_metric.setdefault(metric, []).append(float(value))
+    return by_metric, case_labels
 
 
 def rubric_is_usable(path: Path) -> bool:
@@ -86,7 +99,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        thresholds, min_graded = load_config(args.config)
+        thresholds, min_graded, per_case_metrics = load_config(args.config)
     except (FileNotFoundError, ValueError) as err:
         print(f"ragas-gate: {err}", file=sys.stderr)
         return EXIT_MISCONFIGURED
@@ -115,14 +128,31 @@ def main(argv: list[str] | None = None) -> int:
         scores_path = args.scores
 
     try:
-        by_metric = load_scores(scores_path)
-    except (OSError, json.JSONDecodeError, KeyError) as err:
+        by_metric, case_labels = load_scores(scores_path)
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as err:
         print(f"ragas-gate: cannot read scores at {scores_path}: {err}", file=sys.stderr)
         return EXIT_MISCONFIGURED
 
-    outcomes = evaluate_all(by_metric, thresholds, min_graded)
+    outcomes = evaluate_all(
+        by_metric, thresholds, min_graded, case_labels, per_case_metrics
+    )
     print(format_report(outcomes))
+
+    # Per-case breakdown for anything that failed. The dataset is deliberately
+    # unbalanced towards clean invoices, so an overall average is dominated by
+    # the easy case; when a metric fails, WHICH situation failed is the whole
+    # diagnosis, and it is invisible in the aggregate.
     failed = [o for o in outcomes if not o.passed]
+    if len(set(case_labels)) > 1:
+        # ALWAYS, not only on failure. A metric that passes on the average while
+        # one case sits at zero is precisely what the breakdown exists to show,
+        # and printing it only when the gate is already red would hide it in the
+        # one situation that matters.
+        print()
+        for outcome in outcomes:
+            values = by_metric.get(outcome.metric)
+            if values and len(values) == len(case_labels):
+                print(format_case_breakdown(outcome.metric, values, case_labels))
     if failed:
         print(f"\nragas-gate: FAILED on {len(failed)} of {len(outcomes)} metric(s).")
         return EXIT_THRESHOLD
