@@ -12,7 +12,7 @@ dependencies = [
     # Plain install, never `ragas[all]` — the extras pull sentence-transformers,
     # transformers and nltk, none of which a text-only gate needs.
     "ragas==0.4.3",
-    "anthropic>=0.40.0",
+    "anthropic<1.0",
     # NOT optional, and not cosmetic. ragas 0.4.3 imports
     # `langchain_community.chat_models.vertexai` unconditionally at module load,
     # and langchain-community 0.4.x (the package is being sunset, integrations
