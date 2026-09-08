@@ -4,6 +4,7 @@ import { resumeLangGraphEngine } from './audit/engines/langgraph'
 import { needsHumanReview, varianceThreshold } from './audit/pause-rule'
 import { persistAuditRun } from './audit/runs'
 import { sql } from './db/client'
+import { invoiceReviewUrl, notifyInvoicePaused } from './notify/slack'
 import { archiveJob, readAuditJobs, type AuditJob } from './queue/audit-queue'
 
 /**
@@ -50,6 +51,38 @@ async function processJob(job: AuditJob, opts: AuditInvoiceOptions = {}): Promis
   // invoice passed, the suspended run would be invisible with no way to resume it.
   const status = needsHumanReview(result.overall, result.variancePct) ? 'paused_review' : 'passed'
   await sql`update invoices set status = ${status} where id = ${job.invoiceId}`
+  if (status === 'paused_review') await announcePause(job.invoiceId, result.variancePct)
+}
+
+/**
+ * Tell Slack an invoice is waiting for a person.
+ *
+ * Deliberately AFTER the status write, and deliberately unable to fail: the
+ * audit has already succeeded and the invoice is already in the review queue by
+ * the time this runs, so a Slack outage must not undo that or make the worker
+ * drop the job as poison. `notifyInvoicePaused` swallows its own failures; the
+ * try/catch here covers the lookup as well, so the whole notification path is
+ * best-effort end to end.
+ *
+ * Only the `audit` path calls this. A `resume` job returns before it, which is
+ * correct: that run already notified when it paused, and re-announcing on every
+ * approval would tell the reviewer about work they have just finished.
+ */
+async function announcePause(invoiceId: string, variancePct: number): Promise<void> {
+  try {
+    const [row] = await sql<{ invoice_number: string; vendor_name: string }[]>`
+      select i.invoice_number, v.name as vendor_name
+      from invoices i join vendors v on v.id = i.vendor_id
+      where i.id = ${invoiceId}`
+    await notifyInvoicePaused({
+      invoiceNumber: row?.invoice_number ?? invoiceId,
+      vendor: row?.vendor_name ?? 'unknown vendor',
+      variancePct,
+      url: invoiceReviewUrl(invoiceId),
+    })
+  } catch (err) {
+    console.error(`[worker] pause notification failed for invoice ${invoiceId}:`, err)
+  }
 }
 
 /** Drain the currently-available jobs once. Returns how many were read. */
