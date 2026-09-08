@@ -25,13 +25,15 @@ the API and web dev servers are started as Playwright `webServer`s.
 - `audit-flow.spec.ts` **@swap** — upload → audit runs via the queue → four
   check cards render. Engine-agnostic (asserts pipeline, not verdicts), so it
   runs under both the mock and the all-pass stub.
-- `review-flow.spec.ts` — an uploaded invoice fails the arithmetic check, lands
-  paused_review, and approving it clears the queue. Not `@swap`: the all-pass
-  stub can't pause anything, so verdict assertions live here, not in the swap run.
-  It passes under the mock and under `langgraph`, for different reasons — the
-  mock reads an invoice with no line rows, the real engine reads the fixture PDF,
-  whose printed total deliberately does not match subtotal + GST. See
-  `fixtures/README.md` before touching that file.
+- `review-flow.spec.ts`: an uploaded invoice lands paused_review, and approving
+  it clears the queue. Not `@swap`: the all-pass stub can't pause anything, so
+  verdict assertions live here, not in the swap run. It passes under the mock and
+  under `langgraph` for different reasons; the mock reads an invoice with no line
+  rows, the real engine reads the fixture PDF, whose printed total deliberately
+  does not match subtotal + GST. **Neither cause is what the assertion depends
+  on**: the uploaded invoice has no purchase order either, which pauses it on its
+  own. Read `fixtures/README.md` on what these four check cards do and do not
+  prove before changing anything there.
 
 ## The real engine
 
@@ -47,14 +49,18 @@ the fixture's own printed numbers rather than the upload form's.
 
 Three jobs in `.github/workflows/ci.yml`:
 
-| Job             | When                         | Engine    |
-| --------------- | ---------------------------- | --------- |
-| `build`         | every push + PR              | none      |
-| `e2e-mock`      | every push + PR              | mock      |
-| `langgraph-e2e` | `main` + `workflow_dispatch` | langgraph |
+| Job             | When                                      | Engine    |
+| --------------- | ----------------------------------------- | --------- |
+| `build`         | every PR, and every push to `main`        | none      |
+| `e2e-mock`      | every PR, and every push to `main`        | mock      |
+| `langgraph-e2e` | pushes to `main`, and `workflow_dispatch` | langgraph |
+
+`on.push.branches` is `[main]`, so a push to any other branch triggers nothing;
+work on a branch is covered once it opens a pull request.
 
 Both e2e jobs start the real Supabase CLI stack on the runner
 (`.github/scripts/start-supabase.sh`), because `global-setup.ts` resets the DB
-and the seed uploads PDFs to Storage. The engine split is deliberate: a
+and the seed uploads PDFs to Storage. Both are `needs: build`, so a lint or type
+error fails before any container starts. The engine split is deliberate: a
 non-deterministic model must never be able to redden a pull request that changed
 no code.

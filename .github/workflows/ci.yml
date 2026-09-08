@@ -6,6 +6,13 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Two pushes in quick succession would otherwise run two full e2e jobs at once,
+# each pulling the Supabase images, seeding through 32 OpenAI embedding calls and
+# (on main) making the vision calls. Only the newest ref is worth paying for.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,15 +39,25 @@ jobs:
       # see CONVENTIONS §13. It fails the job when a metric regresses.
 
   # The cheap regression tier: the same acceptance specs against the deterministic
-  # mock engine, on every push and pull request. No model reads the invoice here,
-  # so a green PR cannot be turned red by a model changing its mind.
+  # mock engine, on every pull request and every push to `main`. No model reads
+  # the invoice here, so a green PR cannot be turned red by a model changing its
+  # mind.
   #
   # It is NOT secret-free, despite running no audit model: `bun run seed` embeds
   # the contract corpus through OpenAI, so the job still needs the Doppler `ci`
   # config. Removing that dependency means changing the seed, not this file.
+  #
+  # `needs: build` because this job starts Docker containers and spends money on
+  # embeddings; a lint or type error should fail before any of that begins.
   e2e-mock:
     name: e2e (mock engine)
     runs-on: ubuntu-latest
+    needs: build
+    # Nothing here is bounded by Playwright: `supabase start` and the browser
+    # install sit outside it, and playwright.config.ts sets no globalTimeout, so
+    # its globalSetup (db reset + a 32-call seed) can hang indefinitely. The
+    # runner default is 6 hours of billed minutes.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -49,7 +66,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - uses: dopplerhq/cli-action@v3
+      - uses: dopplerhq/cli-action@v4
 
       - run: bun install --frozen-lockfile
       - run: bunx playwright install --with-deps chromium
@@ -63,7 +80,7 @@ jobs:
       - name: Run the acceptance suite (mock engine)
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
-        run: doppler run -- bun run e2e
+        run: doppler run -p p1-invoice-audit -c ci -- bun run e2e
 
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -80,6 +97,8 @@ jobs:
     name: e2e (langgraph engine)
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -88,7 +107,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - uses: dopplerhq/cli-action@v3
+      - uses: dopplerhq/cli-action@v4
 
       - run: bun install --frozen-lockfile
       - run: bunx playwright install --with-deps chromium
@@ -100,7 +119,7 @@ jobs:
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
           AUDIT_ENGINE: langgraph
-        run: doppler run -- bun run e2e
+        run: doppler run -p p1-invoice-audit -c ci -- bun run e2e
 
       - uses: actions/upload-artifact@v4
         if: failure()

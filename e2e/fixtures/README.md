@@ -40,5 +40,38 @@ one is an invoice that genuinely does not add up. The extraction prompt instruct
 transcribe what is printed even when the arithmetic looks wrong, so the mismatch survives
 extraction and the math check fails on it.
 
-Changing the printed totals so the invoice balances will silently break `review-flow.spec.ts`
-under the real engine. Change the numbers in the generator, not the PDF.
+### The defect fires, but nothing asserts on it
+
+Do not read the table above as a guarantee. The `math = fail` verdict is real and observable in
+`audit_runs`, but **no assertion in either spec depends on it**, so balancing the totals would
+not turn either spec red.
+
+The reason is the pause has a second, independent cause. The upload form fills no purchase
+order, so `runPoMatchCheck` (`checks.ts:64-69`) returns `flag`, `rollUp` (`graph.ts:86-88`)
+promotes any flag to the overall verdict, and the worker (`worker.ts:25-27`) pauses anything
+that is not a clean `pass`. A balanced fixture still pauses, and `review-flow.spec.ts` still
+passes.
+
+So the arithmetic defect is deliberate and correct, and it is **not load-bearing**. A future
+"tidy-up" that makes the totals add up would go uncaught by the suite. Change the numbers in the
+generator, not the PDF, and if you change them, read this section first.
+
+### What the four rendered check cards actually prove
+
+Less than their count suggests, and this is a property of the fixture plus the upload form, not
+of the engine. Vendors are listed ordered by name (`invoices/service.ts:181`) and both specs pick
+`getByRole('option').first()`, so the vendor is deterministically **Dodgy Diggers Supplies Pty
+Ltd**, which the seed gives no contract at all.
+
+| Check               | Verdict | What decided it                                                                                                                                      |
+| ------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `math`              | fail    | Real data: the numbers on this page                                                                                                                  |
+| `po_match`          | flag    | The **absence** of data: no PO is linked                                                                                                             |
+| `price_vs_contract` | pass    | Nothing: `worstOverage` (`checks.ts:118-138`) skips every line with no rate-card entry and returns null, so the check passes having compared nothing |
+| `contract_terms`    | pass    | Nothing: retrieval returns zero clauses, so the check short-circuits without ever calling the model                                                  |
+
+**The suite proves the pipeline and the seam, not the checks.** Upload reaches the queue, the
+queue reaches the engine, the engine's result reaches the database and the UI, and swapping
+`AUDIT_ENGINE` changes none of that. Only one of the four verdicts is decided by real reference
+data. The checks themselves are covered by the unit tier (`engines/langgraph/checks.test.ts`) and
+by `contract-terms-agent.integration.test.ts`.

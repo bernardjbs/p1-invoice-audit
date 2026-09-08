@@ -14,16 +14,22 @@ set -euo pipefail
 # it. It is read off the started stack rather than added as a third secret: the
 # key belongs to an ephemeral local container, not to any hosted project.
 
+# STDOUT IS DISCARDED ON PURPOSE. On a non-TTY `supabase start` finishes by
+# printing the whole status block, which contains SERVICE_ROLE_KEY, ANON_KEY,
+# SECRET_KEY, JWT_SECRET and the S3 protocol secret. `::add-mask::` below cannot
+# retract what is already in the log, so the only working defence is never
+# emitting them. Errors and progress go to stderr and are kept.
 start=$(date +%s)
-bunx supabase start
+bunx supabase start >/dev/null
 echo "supabase start took $(($(date +%s) - start))s"
 
-# `-o env` prints KEY="value" lines. They land in this script's own shell, so
-# only the two names written to GITHUB_ENV below reach any later step.
+# `-o env` prints KEY="value" lines. Command substitution keeps them out of the
+# log, and they land in this script's own shell, so only the two names written to
+# GITHUB_ENV below reach any later step.
 eval "$(bunx supabase status -o env)"
 
-# Mask it in the log even though it is an ephemeral local key — a service-role
-# key printed by a workflow reads as a leak whatever its scope.
+# Mask it for the rest of the job even though it is an ephemeral local key: a
+# service-role key printed by a workflow reads as a leak whatever its scope.
 echo "::add-mask::${SERVICE_ROLE_KEY}"
 {
   echo "SUPABASE_URL=${API_URL}"

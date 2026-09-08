@@ -5,7 +5,7 @@ build
 .agents
 .claude
 # Agent working state for an in-flight plan: gitignored, never committed, and
-# rewritten mid-task — Prettier failing the lint gate on it blocks a push for a
+# rewritten mid-task. Prettier failing the lint gate on it blocks a push for a
 # file that is not part of the repo.
 .superpowers
 test-results
