@@ -52,8 +52,15 @@ export type ClauseRetriever = (query: string, vendorId: string) => Promise<Chunk
 /** Prompt in, raw reply out. Mirrors the extraction reader seam — the parse stays visible here. */
 export type ClauseJudge = (system: string, prompt: string) => Promise<string>
 
-/** Enough clauses to reason over without burying the relevant one (matches the seam's default). */
-const TOP_K = 4
+/**
+ * How many clauses to judge against is the SEAM's decision, not the agent's.
+ *
+ * This used to pin 4. That silently overrode whatever the seam thought right,
+ * and it was the number that hid the deciding clause on three of five faulty
+ * invoices (measured 2026-09-08). `k` stays overridable for a caller that truly
+ * needs a fixed depth — a probe, a test — but the default is now the seam's
+ * budget rule: the whole contract when it fits, ranked-and-cut when it does not.
+ */
 
 /**
  * Sonnet rather than Haiku: this is the only step asked to reason about meaning
@@ -105,17 +112,87 @@ function renderClauses(chunks: Chunk[]): string {
   return chunks.map((c, i) => `[${i + 1}] ${c.content}`).join('\n\n')
 }
 
+/**
+ * Every balanced `{...}` span in the reply, outermost only, in order.
+ *
+ * Brace-counting rather than a regex, because a clause quoted inside the summary
+ * can contain braces and nesting; string literals are tracked so a brace inside
+ * quoted text does not open or close a span.
+ */
+function jsonSpans(reply: string): string[] {
+  const spans: string[] = []
+  let depth = 0
+  let start = -1
+  let inString = false
+  let escaped = false
+  for (let i = 0; i < reply.length; i += 1) {
+    const ch = reply[i]!
+    if (inString) {
+      if (escaped) escaped = false
+      else if (ch === '\\') escaped = true
+      else if (ch === '"') inString = false
+      continue
+    }
+    if (ch === '"') inString = true
+    else if (ch === '{') {
+      if (depth === 0) start = i
+      depth += 1
+    } else if (ch === '}') {
+      depth -= 1
+      if (depth === 0 && start !== -1) {
+        spans.push(reply.slice(start, i + 1))
+        start = -1
+      } else if (depth < 0) {
+        // A stray closing brace in prose. Ignore it rather than letting it
+        // unbalance every span that follows.
+        depth = 0
+      }
+    }
+  }
+  return spans
+}
+
+/**
+ * Read the model's judgement out of its reply.
+ *
+ * Takes the LAST span that validates, not everything between the first `{` and
+ * the last `}`. That earlier approach assumed the reply held exactly one object,
+ * and models do not reliably oblige: a real reply (2026-09-08) gave a verdict,
+ * argued itself into the opposite one mid-summary, wrote "Wait, I must return
+ * only one JSON object", and emitted a second object. Slicing first-to-last
+ * brace spanned object, prose and object, which is not JSON — so a model that
+ * corrected itself was indistinguishable from one that returned nothing usable.
+ *
+ * Last-that-validates because a self-correcting model's final object is its
+ * answer. This makes the reply READABLE; it does not make it right. The one that
+ * prompted this fix reads "pass" on an invoice that genuinely breaches its rate
+ * cap, and that is now a wrong verdict the eval can measure rather than a crash
+ * that hides it.
+ */
 function parseJudgement(reply: string): z.infer<typeof JudgementSchema> {
-  const start = reply.indexOf('{')
-  const end = reply.lastIndexOf('}')
-  if (start === -1 || end <= start) {
+  const spans = jsonSpans(reply)
+  if (spans.length === 0) {
     throw new ContractTermsError('model reply contained no JSON object')
   }
   let json: unknown
-  try {
-    json = JSON.parse(reply.slice(start, end + 1))
-  } catch (cause) {
-    throw new ContractTermsError('model reply was not valid JSON', { cause })
+  let lastCause: unknown
+  let found = false
+  for (const span of spans.reverse()) {
+    try {
+      const candidate: unknown = JSON.parse(span)
+      if (JudgementSchema.safeParse(candidate).success) {
+        json = candidate
+        found = true
+        break
+      }
+      json = candidate
+      found = true
+    } catch (cause) {
+      lastCause = cause
+    }
+  }
+  if (!found) {
+    throw new ContractTermsError('model reply was not valid JSON', { cause: lastCause })
   }
   const parsed = JudgementSchema.safeParse(json)
   if (!parsed.success) {
@@ -162,7 +239,8 @@ export async function runContractTermsCheck(
 ): Promise<CheckResult> {
   const retrieve: ClauseRetriever =
     opts.retrieve ??
-    ((query, vendor) => retrieveRelevantContext(query, vendor, { k: opts.k ?? TOP_K }))
+    ((query, vendor) =>
+      retrieveRelevantContext(query, vendor, opts.k === undefined ? {} : { k: opts.k }))
   const judge = opts.judge ?? claudeJudge(opts.model ?? DEFAULT_JUDGE_MODEL)
 
   const clauses = await retrieve(buildQuery(invoice), vendorId)

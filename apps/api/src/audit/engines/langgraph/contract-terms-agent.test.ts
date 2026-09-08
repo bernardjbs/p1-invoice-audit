@@ -175,3 +175,54 @@ describe('runContractTermsCheck', () => {
     expect(asked).not.toContain('6435')
   })
 })
+
+describe('parseJudgement — replies that are not a single clean object', () => {
+  const clauses = [
+    { id: 'c1', contractId: 'k1', vendorId: 'v1', sourceRef: 'MSA §6', content: 'x', score: 1 },
+  ]
+  const retrieve = async () => clauses
+  const invoice = {
+    invoiceNumber: 'INV-0001',
+    abn: '11 111 111 111',
+    subtotalAud: 100,
+    gstAud: 10,
+    totalAud: 110,
+    lines: [
+      { itemCode: 'A', description: 'a thing', qty: 1, unitPriceAud: 100, lineTotalAud: 100 },
+    ],
+  }
+
+  it('takes the final object when the model corrects itself mid-reply', async () => {
+    // A real reply, 2026-09-08: a verdict, an argument into the opposite one,
+    // "Wait, I must return only one JSON object", then a second object. The old
+    // first-brace-to-last-brace slice spanned object + prose + object.
+    const judge = async () =>
+      '{"verdict": "fail", "summary": "first thoughts", "clause": 1}\n\n' +
+      'Wait, I must return only one JSON object. Here it is:\n' +
+      '{"verdict": "pass", "summary": "on reflection nothing is breached", "clause": null}'
+    const result = await runContractTermsCheck(invoice, 'v1', { retrieve, judge })
+    expect(result.verdict).toBe('pass')
+    expect(result.evidence.summary).toBe('on reflection nothing is breached')
+  })
+
+  it('ignores prose wrapped around a single object', async () => {
+    const judge = async () =>
+      'Here is my judgement:\n{"verdict": "fail", "summary": "clause 1 forbids it", "clause": 1}\nHope that helps.'
+    const result = await runContractTermsCheck(invoice, 'v1', { retrieve, judge })
+    expect(result.verdict).toBe('fail')
+  })
+
+  it('is not confused by braces inside the summary text', async () => {
+    const judge = async () =>
+      '{"verdict": "fail", "summary": "the clause says {no call-out fees} without approval", "clause": 1}'
+    const result = await runContractTermsCheck(invoice, 'v1', { retrieve, judge })
+    expect(result.evidence.summary).toContain('{no call-out fees}')
+  })
+
+  it('still refuses a reply with no object at all', async () => {
+    const judge = async () => 'I am not sure what to make of this invoice.'
+    await expect(runContractTermsCheck(invoice, 'v1', { retrieve, judge })).rejects.toThrow(
+      /no JSON object/,
+    )
+  })
+})

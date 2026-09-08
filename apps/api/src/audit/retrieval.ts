@@ -34,8 +34,29 @@ export type Chunk = {
   score: number
 }
 
-/** Enough clauses for the agent to reason over without burying the relevant one. */
-const DEFAULT_K = 4
+/**
+ * The floor: never hand the agent fewer clauses than this, however long they are.
+ *
+ * Was the whole rule, as a flat `k = 4`, justified as "enough to reason over
+ * without burying the relevant one". That reasoning holds for a long contract
+ * and was wrong for ours. Measured 2026-09-08 across the eval dataset: every
+ * vendor's contract is 8 clauses and ~2,100 characters, and in 3 of the 5 faulty
+ * invoices the clause that decides the case ranked FIFTH — one place below the
+ * cut. The agent was asked to rule on a breach without being shown the clause
+ * breached, and on one invoice it answered "pass" for exactly that reason.
+ *
+ * Nothing failed loudly. The audit still returned a confident verdict.
+ */
+const MIN_CLAUSES = 4
+
+/**
+ * How much contract text the agent may be handed when clauses are plentiful.
+ *
+ * ~3,000 tokens at four characters per token. A whole contract of ours is ~500,
+ * so today every clause fits and the cut never engages — which is the point.
+ * Filtering only earns its place when there is something to filter.
+ */
+const CONTEXT_BUDGET_CHARS = 12_000
 
 /**
  * Built lazily, and imported dynamically, so the module stays usable with an
@@ -76,21 +97,44 @@ export async function retrieveRelevantContext(
   vendorId: string,
   opts?: { k?: number; embedder?: QueryEmbedder },
 ): Promise<Chunk[]> {
-  const k = opts?.k ?? DEFAULT_K
   const embedder = opts?.embedder ?? (await defaultEmbedder())
 
   // pgvector's text form is a JSON-style array, so this is its literal syntax.
   const embedding = JSON.stringify(await embedder.embedQuery(query))
 
   // `<=>` is cosine DISTANCE (0 = identical), so similarity is 1 - distance.
-  const rows = await sql<ChunkRow[]>`
-    select id, contract_id, vendor_id, source_ref, content,
-           1 - (embedding <=> ${embedding}::vector) as score
-    from contract_chunks
-    where vendor_id = ${vendorId}
-    order by embedding <=> ${embedding}::vector
-    limit ${k}
-  `
+  //
+  // An explicit `k` still means exactly k — tests and probes need a fixed depth.
+  // Left to itself, the rule is: send the whole contract when it fits, and only
+  // rank-and-cut when it does not. The ordering is computed either way, so the
+  // agent always reads the most relevant clause first, and the cut engages by
+  // itself the day a contract outgrows the budget.
+  const rows =
+    opts?.k !== undefined
+      ? await sql<ChunkRow[]>`
+          select id, contract_id, vendor_id, source_ref, content,
+                 1 - (embedding <=> ${embedding}::vector) as score
+          from contract_chunks
+          where vendor_id = ${vendorId}
+          order by embedding <=> ${embedding}::vector
+          limit ${opts.k}
+        `
+      : await sql<ChunkRow[]>`
+          select id, contract_id, vendor_id, source_ref, content, score
+          from (
+            select id, contract_id, vendor_id, source_ref, content,
+                   1 - (embedding <=> ${embedding}::vector) as score,
+                   row_number() over (order by embedding <=> ${embedding}::vector) as rn,
+                   sum(length(content)) over (
+                     order by embedding <=> ${embedding}::vector
+                     rows between unbounded preceding and current row
+                   ) as running_chars
+            from contract_chunks
+            where vendor_id = ${vendorId}
+          ) ranked
+          where running_chars <= ${CONTEXT_BUDGET_CHARS} or rn <= ${MIN_CLAUSES}
+          order by rn
+        `
 
   return rows.map((row) => ({
     id: row.id,
