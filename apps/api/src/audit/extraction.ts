@@ -120,7 +120,7 @@ export const DEFAULT_EXTRACTION_MODEL = 'claude-haiku-4-5'
  * model step, and LangSmith then traces the call itself rather than just
  * recording that the step ran.
  */
-function claudeReader(model: string): InvoiceReader {
+export function claudeReader(model: string): InvoiceReader {
   return async (pdfBase64, prompt) => {
     const [{ ChatAnthropic }, { serverEnv }] = await Promise.all([
       import('@langchain/anthropic'),

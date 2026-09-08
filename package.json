@@ -15,12 +15,13 @@
     "format:check": "prettier --check .",
     "typecheck": "bun run --filter '*' typecheck && bun run typecheck:ops",
     "typecheck:ops": "tsc -p tsconfig.ops.json",
-    "test": "bun run --filter '*' test",
+    "test": "bun run --filter '*' test && bun run test:evals",
     "test:integration": "bun run --filter '@starter/api' test:integration",
     "seed": "bun run --filter '@starter/api' seed",
     "build": "bun run --filter '*' build",
     "e2e": "playwright test",
-    "e2e:stub": "AUDIT_ENGINE=stub playwright test --grep @swap"
+    "e2e:stub": "AUDIT_ENGINE=stub playwright test --grep @swap",
+    "test:evals": "vitest run --config vitest.evals.config.ts"
   },
   "dependencies": {
     "hono": "^4.13.5"

@@ -11,7 +11,12 @@ import {
   type FieldComparison,
   type ScorableInvoice,
 } from '../../apps/api/src/audit/extraction-score'
-import { extractInvoiceFields } from '../../apps/api/src/audit/extraction'
+import {
+  claudeReader,
+  DEFAULT_EXTRACTION_MODEL,
+  extractInvoiceFields,
+} from '../../apps/api/src/audit/extraction'
+import { cachingReader, describe, newStats } from '../lib/model-cache'
 import { downloadInvoicePdf } from '../../apps/api/src/lib/storage'
 
 /**
@@ -35,6 +40,18 @@ import { downloadInvoicePdf } from '../../apps/api/src/lib/storage'
 
 const THRESHOLD = Number(process.env.EXTRACTION_THRESHOLD ?? '0.9')
 const MODEL = process.env.EXTRACTION_MODEL
+/**
+ * `--no-cache` re-reads every PDF at full price. The default caches, because
+ * tuning a threshold means running this repeatedly over inputs that have not
+ * changed, and each of those runs previously re-read every invoice.
+ */
+const USE_CACHE = !process.argv.includes('--no-cache')
+const CACHE_STATS = newStats()
+const READER = cachingReader(
+  claudeReader(MODEL ?? DEFAULT_EXTRACTION_MODEL),
+  MODEL ?? DEFAULT_EXTRACTION_MODEL,
+  { enabled: USE_CACHE, stats: CACHE_STATS },
+)
 /** Enough to keep twenty calls brisk without tripping a rate limit. */
 const CONCURRENCY = 4
 
@@ -68,7 +85,7 @@ type Outcome = {
 async function scoreOne(row: Row, truth: ScorableInvoice): Promise<Outcome> {
   const pdf = await downloadInvoicePdf(row.pdf_path)
   try {
-    const extracted = await extractInvoiceFields(pdf, MODEL ? { model: MODEL } : {})
+    const extracted = await extractInvoiceFields(pdf, { reader: READER })
     return { invoiceNumber: row.invoice_number, comparisons: compareInvoice(truth, extracted) }
   } catch (error) {
     return {
@@ -147,6 +164,9 @@ async function main(): Promise<void> {
   console.log(
     `\noverall ${pct(overall)} over ${all.length} field comparisons (threshold ${pct(THRESHOLD)})`,
   )
+  // Always report what the run actually cost in model reads. A cache that is
+  // silently doing nothing looks exactly like one that is working.
+  console.log(`model reads: ${describe(CACHE_STATS)}${USE_CACHE ? '' : '  (--no-cache)'}`)
 
   if (overall < THRESHOLD) {
     console.error(`FAIL — extraction accuracy ${overall.toFixed(4)} is below ${THRESHOLD}`)
