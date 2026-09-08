@@ -1,0 +1,17 @@
+# Thresholds the CI gate enforces. Copied from the plan, with one correction.
+[thresholds]
+# From the plan, unchanged.
+faithfulness = 0.8
+
+# PROVISIONAL — do not read this as a considered value.
+# The plan says "context relevancy >= 0.7", but that metric no longer exists in
+# ragas 0.4.3; its apparent successor scores on a different scale, so 0.7 is a
+# number inherited from a metric we are not using. Re-derive it from the first
+# real grading run and record the before/after. Measured 2026-09-08.
+context_relevance = 0.7
+
+[gate]
+# A mean over a handful of surviving rows is not a mean over the dataset. If
+# fewer than this many rows graded, the gate fails regardless of the average --
+# otherwise a collapse of the grading step reads as a pass.
+min_graded_rows = 18

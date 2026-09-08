@@ -15,3 +15,6 @@ bun.lock
 
 # Python virtualenvs (the RAGAS eval harness). Some wheels vendor browser JS.
 .venv
+
+# Python test cache (regenerated on every pytest run).
+.pytest_cache

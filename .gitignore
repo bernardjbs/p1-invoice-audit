@@ -44,3 +44,10 @@ playwright-report.json
 
 # Python virtualenv for the RAGAS eval harness (uv rebuilds it from the lockfile).
 evals/ragas/.venv/
+
+# Python test cache.
+.pytest_cache/
+
+# Python bytecode.
+__pycache__/
+*.pyc

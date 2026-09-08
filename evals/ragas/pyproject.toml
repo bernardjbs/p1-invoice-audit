@@ -1,0 +1,35 @@
+[project]
+name = "ragas-gate"
+version = "0.1.0"
+description = "RAGAS eval harness and CI gate for the contract-terms audit step."
+# RAGAS declares only `>=3.9` with no upper bound and publishes no per-version
+# support classifiers, so an install succeeding on a new CPython proves nothing.
+# Pinned below 3.14 deliberately: `scikit-network` is a compiled transitive dep
+# and the first place a fresh CPython minor tends to lack wheels. uv fetches the
+# interpreter, so the machine's own Python does not constrain this.
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    # Plain install, never `ragas[all]` — the extras pull sentence-transformers,
+    # transformers and nltk, none of which a text-only gate needs.
+    "ragas==0.4.3",
+    "anthropic>=0.40.0",
+    # NOT optional, and not cosmetic. ragas 0.4.3 imports
+    # `langchain_community.chat_models.vertexai` unconditionally at module load,
+    # and langchain-community 0.4.x (the package is being sunset, integrations
+    # moved to standalone packages) deleted it. Without this pin, `import ragas`
+    # raises ModuleNotFoundError before any of our code runs. Measured 2026-09-08.
+    "langchain-community<0.4",
+]
+
+[project.scripts]
+ragas-gate = "ragas_gate.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ragas_gate"]
