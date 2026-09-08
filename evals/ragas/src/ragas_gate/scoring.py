@@ -135,6 +135,7 @@ def evaluate_per_case(
     case_labels: list[str],
     threshold: float,
     min_graded_fraction: float,
+    report_only_cases: frozenset[str] = frozenset(),
 ) -> MetricOutcome:
     """Hold EVERY case to the threshold, not the dataset average.
 
@@ -170,13 +171,28 @@ def evaluate_per_case(
             total=len(values),
             failure=f"applies to none of the {len(values)} rows — the gate guards nothing here",
         )
-    failures = {c: o for c, o in per_case.items() if not o.passed}
+    # Report-only cases are still scored and still printed; they simply do not
+    # decide the build. Every one of them is a fault the free arithmetic checks
+    # already catch, so the invoice is flagged whatever the reader concludes.
+    # Gating on them would put the bar where a red build need not mean anything
+    # is broken.
+    failures = {
+        c: o for c, o in per_case.items() if not o.passed and c not in report_only_cases
+    }
     graded = sum(o.graded for o in per_case.values())
     applicable = sum(o.applicable for o in per_case.values())
 
     if not failures:
+        # The headline figure is the worst GATING case, not the worst of all.
+        # Including report-only cases printed "0.000  PASS", which reads as a
+        # broken gate and is exactly the kind of line that teaches people to
+        # ignore the report. Their scores are still shown in the breakdown below.
         worst = min(
-            (o for o in per_case.values() if o.mean is not None),
+            (
+                o
+                for case, o in per_case.items()
+                if o.mean is not None and case not in report_only_cases
+            ),
             key=lambda o: o.mean,
             default=None,
         )
@@ -215,6 +231,7 @@ def evaluate_all(
     min_graded_fraction: float,
     case_labels: list[str] | None = None,
     per_case_metrics: frozenset[str] = frozenset(),
+    report_only_cases: frozenset[str] = frozenset(),
 ) -> list[MetricOutcome]:
     """Judge every metric that carries a threshold.
 
@@ -241,7 +258,12 @@ def evaluate_all(
         if metric in per_case_metrics and case_labels is not None:
             outcomes.append(
                 evaluate_per_case(
-                    metric, values, case_labels, threshold, min_graded_fraction
+                    metric,
+                    values,
+                    case_labels,
+                    threshold,
+                    min_graded_fraction,
+                    report_only_cases,
                 )
             )
         else:
@@ -271,8 +293,17 @@ def group_by_case(values: list[Score], case_labels: list[str]) -> dict[str, list
     return grouped
 
 
-def format_case_breakdown(metric: str, values: list[Score], case_labels: list[str]) -> str:
-    """Per-case means for one metric, worst first so the problem reads first."""
+def format_case_breakdown(
+    metric: str,
+    values: list[Score],
+    case_labels: list[str],
+    report_only_cases: frozenset[str] = frozenset(),
+) -> str:
+    """Per-case means for one metric, worst first so the problem reads first.
+
+    Report-only cases are marked, because an unmarked 0.000 beside a passing gate
+    looks like a bug in the gate rather than a deliberate exclusion.
+    """
     grouped = group_by_case(values, case_labels)
     rows: list[tuple[str, float | None, int, int]] = []
     for case, vs in grouped.items():
@@ -282,7 +313,8 @@ def format_case_breakdown(metric: str, values: list[Score], case_labels: list[st
     lines = [f"  {metric} by case:"]
     for case, mean, graded, total in rows:
         shown = "  —" if mean is None else f"{mean:.3f}"
-        lines.append(f"    {case:<26} {shown:>8}  {f'{graded}/{total}':>8}")
+        note = "  (reported only, not gating)" if case in report_only_cases else ""
+        lines.append(f"    {case:<26} {shown:>8}  {f'{graded}/{total}':>8}{note}")
     return "\n".join(lines)
 
 

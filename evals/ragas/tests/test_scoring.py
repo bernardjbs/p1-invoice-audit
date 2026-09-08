@@ -150,3 +150,52 @@ def test_per_case_fails_when_one_case_is_wrong_even_if_the_average_passes() -> N
     assert "prose-only-breach" in per_case.failure
     # The reported mean is the worst case's, not the flattering average.
     assert per_case.mean == 0.0
+
+
+REPORT_ONLY = frozenset({"rate-cap-20pct"})
+
+
+def test_a_report_only_case_does_not_fail_the_build() -> None:
+    """Ruled 2026-09-08: grade the reader on what only it can do.
+
+    A rate-cap breach is caught by the free price check whatever the reader
+    concludes, so the invoice is flagged either way and gating on it would put
+    the bar where a red build need not mean anything is broken.
+    """
+    values = [0.0, 1.0, 1.0]
+    labels = ["rate-cap-20pct", "prose-only-breach", "clean"]
+    outcome = evaluate_per_case("verdict_correct", values, labels, 0.9, MIN_COVERAGE, REPORT_ONLY)
+    assert outcome.passed
+
+
+def test_a_gating_case_still_fails_the_build() -> None:
+    """The exclusion must not leak: the clause-only breach still decides."""
+    values = [1.0, 0.0, 1.0]
+    labels = ["rate-cap-20pct", "prose-only-breach", "clean"]
+    outcome = evaluate_per_case("verdict_correct", values, labels, 0.9, MIN_COVERAGE, REPORT_ONLY)
+    assert not outcome.passed
+    assert "prose-only-breach" in outcome.failure
+
+
+def test_the_headline_figure_ignores_report_only_cases() -> None:
+    """A passing gate must not print 0.000 beside it.
+
+    The score came from a case that was deliberately excluded; showing it as the
+    metric's figure reads as a broken gate and teaches people to ignore reports.
+    """
+    values = [0.0, 1.0, 1.0]
+    labels = ["rate-cap-20pct", "prose-only-breach", "clean"]
+    outcome = evaluate_per_case("verdict_correct", values, labels, 0.9, MIN_COVERAGE, REPORT_ONLY)
+    assert outcome.passed
+    assert outcome.mean == 1.0
+
+
+def test_an_unlisted_case_gates_by_default() -> None:
+    """Exclusions are a list, so a case added later is guarded unless someone
+    deliberately excludes it. The opposite default would let a new case escape
+    the gate by oversight."""
+    values = [0.0, 1.0]
+    labels = ["some-new-case", "clean"]
+    outcome = evaluate_per_case("verdict_correct", values, labels, 0.9, MIN_COVERAGE, REPORT_ONLY)
+    assert not outcome.passed
+    assert "some-new-case" in outcome.failure

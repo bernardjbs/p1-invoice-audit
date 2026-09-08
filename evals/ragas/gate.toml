@@ -46,3 +46,19 @@ min_graded_fraction = 0.9
 # per-case enforcement would fail the build on grader noise. Its per-case
 # breakdown is always printed instead.
 per_case = ["retrieval_recall", "cited_clause_correct", "verdict_correct"]
+
+# Cases that are MEASURED and PRINTED but do not fail the build.
+#
+# Ruled 2026-09-08. The reading step exists to catch what arithmetic cannot. Each
+# case below is a fault that the free maths, order and price checks already catch
+# on their own, so the invoice is flagged whatever the reader concludes and the
+# product is not harmed when it demurs.
+#
+# Grading the reader on them sets the bar where a red build need not mean
+# anything is broken, and where the obvious repair is to tune a prompt until an
+# expensive model does arithmetic that two free checks already do perfectly.
+#
+# Listed as EXCLUSIONS, not as an allow-list of gating cases: a case added to the
+# dataset later then gates by default, and escaping the gate takes a deliberate
+# edit here rather than an oversight.
+report_only_cases = ["rate-cap-20pct", "rate-cap-10pct", "arithmetic", "po-mismatch"]

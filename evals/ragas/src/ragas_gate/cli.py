@@ -23,7 +23,14 @@ import sys
 import tomllib
 from pathlib import Path
 
-from .scoring import NOT_APPLICABLE, Score, evaluate_all, format_case_breakdown, format_report
+from .checks import DatasetRow, cases, score_rows
+from .scoring import (
+    NOT_APPLICABLE,
+    Score,
+    evaluate_all,
+    format_case_breakdown,
+    format_report,
+)
 
 HERE = Path(__file__).resolve().parent.parent.parent
 RUBRIC = HERE / "rubric.md"
@@ -36,7 +43,7 @@ EXIT_MISCONFIGURED = 2
 """The gate could not run: no rubric, no config, unreadable scores."""
 
 
-def load_config(path: Path) -> tuple[dict[str, float], float, frozenset[str]]:
+def load_config(path: Path) -> tuple[dict[str, float], float, frozenset[str], frozenset[str]]:
     if not path.is_file():
         raise FileNotFoundError(f"no gate config at {path}")
     data = tomllib.loads(path.read_text())
@@ -45,7 +52,8 @@ def load_config(path: Path) -> tuple[dict[str, float], float, frozenset[str]]:
         raise ValueError(f"{path} declares no thresholds — the gate would guard nothing")
     min_graded = float(data.get("gate", {}).get("min_graded_fraction", 0.9))
     per_case = frozenset(str(m) for m in data.get("gate", {}).get("per_case", []))
-    return thresholds, min_graded, per_case
+    report_only = frozenset(str(c) for c in data.get("gate", {}).get("report_only_cases", []))
+    return thresholds, min_graded, per_case, report_only
 
 
 def load_scores(path: Path) -> tuple[dict[str, list[Score]], list[str]]:
@@ -77,6 +85,32 @@ def load_scores(path: Path) -> tuple[dict[str, list[Score]], list[str]]:
     return by_metric, case_labels
 
 
+def load_dataset(path: Path) -> tuple[list[DatasetRow], dict[str, list[Score]], list[str]]:
+    """Read the dataset and compute every metric that needs no model.
+
+    The free metrics are recomputed here rather than stored, so they can never
+    drift from the answer key: change what a row expects and the score changes
+    with it, instead of a stale number surviving in a file.
+    """
+    rows: list[DatasetRow] = []
+    for line in path.read_text().splitlines():
+        if not line.strip():
+            continue
+        raw = json.loads(line)
+        rows.append(
+            DatasetRow(
+                invoice_number=raw["invoice_number"],
+                case=raw["case"],
+                retrieved_refs=raw["retrieved_refs"],
+                cited_ref=raw["cited_ref"],
+                verdict=raw["verdict"],
+                expected_ref=raw["expected_ref"],
+                expected_verdict=raw["expected_verdict"],
+            )
+        )
+    return rows, score_rows(rows), cases(rows)
+
+
 def rubric_is_usable(path: Path) -> bool:
     """A rubric that exists but says nothing is not a rubric."""
     return path.is_file() and path.read_text().strip() != ""
@@ -94,15 +128,36 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="A saved scores file produced by a previous grading run.",
     )
+    parser.add_argument(
+        "--dataset",
+        type=Path,
+        help=(
+            "Score the dataset's FREE metrics — exact lookups against the answer key. "
+            "No model, no credentials, no cost, so no rubric is required."
+        ),
+    )
     parser.add_argument("--config", type=Path, default=CONFIG)
     parser.add_argument("--rubric", type=Path, default=RUBRIC)
     args = parser.parse_args(argv)
 
     try:
-        thresholds, min_graded, per_case_metrics = load_config(args.config)
+        thresholds, min_graded, per_case_metrics, report_only = load_config(args.config)
     except (FileNotFoundError, ValueError) as err:
         print(f"ragas-gate: {err}", file=sys.stderr)
         return EXIT_MISCONFIGURED
+
+    if args.dataset is not None:
+        # Free path: every metric here is a lookup against the planted answer
+        # key, so nothing is paid for and the rubric guard does not apply.
+        try:
+            _, by_metric, case_labels = load_dataset(args.dataset)
+        except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as err:
+            print(f"ragas-gate: cannot read dataset at {args.dataset}: {err}", file=sys.stderr)
+            return EXIT_MISCONFIGURED
+        print(f"ragas-gate: free metrics over {len(case_labels)} dataset rows, no model called.")
+        return report(
+            by_metric, case_labels, thresholds, min_graded, per_case_metrics, report_only
+        )
 
     scores_path: Path
     if args.fake_scores is not None:
@@ -133,8 +188,19 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ragas-gate: cannot read scores at {scores_path}: {err}", file=sys.stderr)
         return EXIT_MISCONFIGURED
 
+    return report(by_metric, case_labels, thresholds, min_graded, per_case_metrics, report_only)
+
+
+def report(
+    by_metric: dict[str, list[Score]],
+    case_labels: list[str],
+    thresholds: dict[str, float],
+    min_graded: float,
+    per_case_metrics: frozenset[str],
+    report_only: frozenset[str],
+) -> int:
     outcomes = evaluate_all(
-        by_metric, thresholds, min_graded, case_labels, per_case_metrics
+        by_metric, thresholds, min_graded, case_labels, per_case_metrics, report_only
     )
     print(format_report(outcomes))
 
@@ -152,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
         for outcome in outcomes:
             values = by_metric.get(outcome.metric)
             if values and len(values) == len(case_labels):
-                print(format_case_breakdown(outcome.metric, values, case_labels))
+                print(format_case_breakdown(outcome.metric, values, case_labels, report_only))
     if failed:
         print(f"\nragas-gate: FAILED on {len(failed)} of {len(outcomes)} metric(s).")
         return EXIT_THRESHOLD
