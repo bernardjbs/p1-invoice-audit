@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -29,3 +30,81 @@ jobs:
 
       # P1 eval gate (RAGAS thresholds for agent/RAG behaviour) slots in HERE —
       # see CONVENTIONS §13. It fails the job when a metric regresses.
+
+  # The cheap regression tier: the same acceptance specs against the deterministic
+  # mock engine, on every push and pull request. No model reads the invoice here,
+  # so a green PR cannot be turned red by a model changing its mind.
+  #
+  # It is NOT secret-free, despite running no audit model: `bun run seed` embeds
+  # the contract corpus through OpenAI, so the job still needs the Doppler `ci`
+  # config. Removing that dependency means changing the seed, not this file.
+  e2e-mock:
+    name: e2e (mock engine)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dopplerhq/cli-action@v3
+
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium
+
+      # The suite's own global-setup runs `supabase db reset` and a seed that
+      # uploads invoice PDFs to Storage, so CI needs the real local stack, not a
+      # bare Postgres (RULED 2026-09-07). Docker is present on ubuntu-latest.
+      - name: Start the local Supabase stack
+        run: bash .github/scripts/start-supabase.sh
+
+      - name: Run the acceptance suite (mock engine)
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+        run: doppler run -- bun run e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results-mock
+          path: test-results/
+          retention-days: 7
+
+  # The real engine: Claude reads the invoice PDF and the contract-terms agent
+  # judges the clauses, so this run is non-deterministic and costs model calls.
+  # Gated to `main` and manual dispatch (RULED 2026-09-07) so a model's mood can
+  # never redden a pull request that changed no code.
+  langgraph-e2e:
+    name: e2e (langgraph engine)
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dopplerhq/cli-action@v3
+
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium
+
+      - name: Start the local Supabase stack
+        run: bash .github/scripts/start-supabase.sh
+
+      - name: Run the acceptance suite (langgraph engine)
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+          AUDIT_ENGINE: langgraph
+        run: doppler run -- bun run e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results-langgraph
+          path: test-results/
+          retention-days: 7

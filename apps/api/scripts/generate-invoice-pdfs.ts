@@ -2,6 +2,7 @@ import { resolve } from 'node:path'
 import { createClient } from '@supabase/supabase-js'
 import { chromium } from 'playwright'
 import postgres from 'postgres'
+import { renderHtml, type InvoiceRow, type LineRow } from './invoice-html'
 
 // Load the repo-root .env.local (SUPABASE_URL / service-role key) — under
 // `bun run --filter`, the child's cwd is apps/api, so Bun's implicit .env
@@ -29,72 +30,6 @@ const SUPABASE_URL = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321'
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 const BUCKET = 'invoices'
-
-const aud = new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' })
-const esc = (s: string): string =>
-  s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
-
-type InvoiceRow = {
-  id: string
-  invoice_number: string
-  invoice_date: string
-  due_date: string
-  subtotal_aud: number
-  gst_aud: number
-  total_aud: number
-  vendor_name: string
-  vendor_abn: string
-}
-type LineRow = {
-  invoice_id: string
-  item_code: string
-  description: string
-  qty: number
-  unit_price_aud: number
-  line_total_aud: number
-}
-
-function renderHtml(inv: InvoiceRow, lines: LineRow[]): string {
-  const rows = lines
-    .map(
-      (l) => `<tr>
-        <td>${esc(l.item_code)}</td>
-        <td>${esc(l.description)}</td>
-        <td class="num">${l.qty}</td>
-        <td class="num">${aud.format(l.unit_price_aud)}</td>
-        <td class="num">${aud.format(l.line_total_aud)}</td>
-      </tr>`,
-    )
-    .join('')
-  return `<!doctype html><html><head><meta charset="utf-8"><style>
-    body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; font-size: 12px; margin: 32px; }
-    h1 { font-size: 22px; margin: 0 0 4px; }
-    .meta { margin: 12px 0 20px; }
-    .meta div { margin: 2px 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
-    th { background: #f0f4f8; }
-    .num { text-align: right; }
-    tfoot td { font-weight: bold; }
-  </style></head><body>
-    <h1>Tax Invoice</h1>
-    <div class="meta">
-      <div><strong>Invoice:</strong> ${esc(inv.invoice_number)}</div>
-      <div><strong>Vendor:</strong> ${esc(inv.vendor_name)}</div>
-      <div><strong>ABN:</strong> ${esc(inv.vendor_abn)}</div>
-      <div><strong>Invoice date:</strong> ${esc(inv.invoice_date)} &nbsp; <strong>Due:</strong> ${esc(inv.due_date)}</div>
-    </div>
-    <table>
-      <thead><tr><th>Code</th><th>Description</th><th class="num">Qty</th><th class="num">Unit (AUD)</th><th class="num">Line (AUD)</th></tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot>
-        <tr><td colspan="4" class="num">Subtotal</td><td class="num">${aud.format(inv.subtotal_aud)}</td></tr>
-        <tr><td colspan="4" class="num">GST (10%)</td><td class="num">${aud.format(inv.gst_aud)}</td></tr>
-        <tr><td colspan="4" class="num">Total</td><td class="num">${aud.format(inv.total_aud)}</td></tr>
-      </tfoot>
-    </table>
-  </body></html>`
-}
 
 async function main(): Promise<void> {
   if (!SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required to upload PDFs')
