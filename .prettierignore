@@ -12,3 +12,6 @@ test-results
 playwright-report
 supabase/.temp
 bun.lock
+
+# Python virtualenvs (the RAGAS eval harness). Some wheels vendor browser JS.
+.venv

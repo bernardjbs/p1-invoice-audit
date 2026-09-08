@@ -8,7 +8,20 @@ import globals from 'globals'
 export default tseslint.config(
   // Ignore build output, deps, and installed third-party agent skills
   // (.agents/skills + the .claude/skills symlinks into them).
-  { ignores: ['**/dist/**', '**/node_modules/**', '.agents/**', '.claude/**', 'api/**/*.js'] },
+  // `**/.venv/**`: the Python eval harness installs into `evals/ragas/.venv`, and
+  // some of its wheels ship browser JavaScript (urllib3 vendors an emscripten
+  // fetch worker). ESLint lints it and fails on `self`/`fetch` being undefined —
+  // a red gate owned by nobody, caused by a Python dependency.
+  {
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/.venv/**',
+      '.agents/**',
+      '.claude/**',
+      'api/**/*.js',
+    ],
+  },
 
   js.configs.recommended,
   ...tseslint.configs.recommended,

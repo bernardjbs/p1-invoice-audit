@@ -41,3 +41,6 @@ playwright-report.json
 
 # Agent worktrees (isolated parallel sessions; contents never belong to a commit).
 .claude/worktrees/
+
+# Python virtualenv for the RAGAS eval harness (uv rebuilds it from the lockfile).
+evals/ragas/.venv/
