@@ -36,6 +36,7 @@ export type Database = {
           invoice_id: string
           overall: string | null
           started_at: string
+          trace_url: string | null
           variance_pct: number | null
         }
         Insert: {
@@ -45,6 +46,7 @@ export type Database = {
           invoice_id: string
           overall?: string | null
           started_at?: string
+          trace_url?: string | null
           variance_pct?: number | null
         }
         Update: {
@@ -54,6 +56,7 @@ export type Database = {
           invoice_id?: string
           overall?: string | null
           started_at?: string
+          trace_url?: string | null
           variance_pct?: number | null
         }
         Relationships: [

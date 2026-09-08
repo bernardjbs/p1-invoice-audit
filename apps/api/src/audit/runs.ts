@@ -15,6 +15,8 @@ export type AuditRunView = {
   variancePct: number
   startedAt: string | null
   finishedAt: string | null
+  /** The run's LangSmith trace, when it was traced. Null for every mock run. */
+  traceUrl: string | null
   checks: CheckResult[]
 }
 
@@ -23,12 +25,23 @@ export type AuditRunView = {
  * new run id. Kept behind the seam so the check_results table shape never leaks
  * into the worker/API. started_at/finished_at are stamped now (a synchronous
  * mock run); Phase B's async engine can widen this signature.
+ *
+ * `traceUrl` is a separate argument rather than a field on `result` because the
+ * result shape is locked across every engine. Null is the ordinary case: the
+ * mock engine has no trace, and a live engine run with tracing off has none
+ * either.
  */
-export async function persistAuditRun(invoiceId: string, result: AuditResult): Promise<string> {
+export async function persistAuditRun(
+  invoiceId: string,
+  result: AuditResult,
+  traceUrl: string | null = null,
+): Promise<string> {
   return sql.begin(async (tx) => {
     const [run] = await tx<{ id: string }[]>`
-      insert into audit_runs (invoice_id, engine, started_at, finished_at, overall, variance_pct)
-      values (${invoiceId}, ${result.engine}, now(), now(), ${result.overall}, ${result.variancePct})
+      insert into audit_runs (invoice_id, engine, started_at, finished_at, overall, variance_pct,
+                              trace_url)
+      values (${invoiceId}, ${result.engine}, now(), now(), ${result.overall}, ${result.variancePct},
+              ${traceUrl})
       returning id`
     const runId = run!.id
     for (const check of result.checks) {
@@ -50,9 +63,10 @@ export async function readLatestAuditRun(invoiceId: string): Promise<AuditRunVie
       variance_pct: string
       started_at: string | null
       finished_at: string | null
+      trace_url: string | null
     }[]
   >`
-    select id, engine, overall, variance_pct, started_at::text, finished_at::text
+    select id, engine, overall, variance_pct, started_at::text, finished_at::text, trace_url
     from audit_runs where invoice_id = ${invoiceId}
     order by started_at desc nulls last limit 1`
   if (!run) return null
@@ -67,6 +81,7 @@ export async function readLatestAuditRun(invoiceId: string): Promise<AuditRunVie
     variancePct: Number(run.variance_pct),
     startedAt: run.started_at,
     finishedAt: run.finished_at,
+    traceUrl: run.trace_url,
     checks: checks.map((c) => ({ type: c.check_type, verdict: c.verdict, evidence: c.evidence })),
   }
 }

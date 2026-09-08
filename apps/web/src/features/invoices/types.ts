@@ -30,6 +30,8 @@ export type AuditRunView = {
   variancePct: number
   startedAt: string | null
   finishedAt: string | null
+  /** The run's LangSmith trace, when it was traced. Null for a mock/untraced run. */
+  traceUrl: string | null
   checks: CheckResult[]
 }
 

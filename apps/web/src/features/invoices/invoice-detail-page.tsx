@@ -10,6 +10,7 @@ import {
 import { useInvoice } from './api'
 import { CheckResults } from './check-results'
 import { StatusBadge } from './status-badge'
+import { TraceLink } from './trace-link'
 import { formatAud, formatDate, formatPct } from '@/lib/format'
 
 export function InvoiceDetailPage({ id }: { id: string }) {
@@ -75,6 +76,7 @@ export function InvoiceDetailPage({ id }: { id: string }) {
               {latestAudit.engine} · variance {formatPct(latestAudit.variancePct)}
             </span>
           )}
+          {latestAudit && <TraceLink url={latestAudit.traceUrl} />}
         </div>
         {latestAudit ? (
           <CheckResults checks={latestAudit.checks} />
