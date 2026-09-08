@@ -5,10 +5,25 @@
 # copied from a plan is a guess wearing a decimal point.
 
 [thresholds]
-# --- Judged. The only metric that costs money. ---
-# Does the written explanation actually follow from the clause it cites? This is
-# the one question no lookup can answer, because it is about meaning.
+# --- Judged. These two cost money. ---
+#
+# Does the written explanation actually follow from what the engine was shown?
+# Applied ONLY to rows the answer key marks as a breach, and not because pass
+# rows are easier: calibrated 2026-09-08, a CORRECT pass explanation scores 0.00,
+# because a pass asserts that no clause applies and an absence cannot be
+# supported by a document. Undefined there, not failing -- the same treatment
+# retrieval recall gets on a clean invoice.
 faithfulness = 0.8
+
+# Marks the summary against the five-level scale in rubric.md, normalised from
+# 1-5 onto 0-1. This is the metric that sees what faithfulness cannot: the same
+# calibration scored the rubric's own example of a TOO VAGUE summary 1.00 on
+# faithfulness, identical to the real answer.
+#
+# 0.75 is score 4 of 5 -- "says what the invoice did and rests it on the right
+# clause, but thin". Provisional, like everything else here, until the first
+# full run.
+rubric_score = 0.75
 
 # --- Free. Exact lookups against the planted answer key, no model involved. ---
 # Was the clause that matters among those the search returned? Measures the

@@ -116,6 +116,52 @@ def rubric_is_usable(path: Path) -> bool:
     return path.is_file() and path.read_text().strip() != ""
 
 
+def merge_judged(
+    by_metric: dict[str, list[Score]],
+    order: list[str],
+    scores_path: Path,
+) -> dict[str, list[Score]]:
+    """Fold a saved grading run into the free metrics.
+
+    The two halves are produced at different times and at different prices: the
+    free metrics recompute from the answer key on every run, the judged one is
+    the saved artefact of a run someone paid for.
+
+    Aligned by invoice number, never by position. A scores file missing a row
+    would otherwise shift every later score onto the wrong invoice, which is a
+    corruption that still looks like a clean report. An invoice with no score
+    becomes None -- ungraded, which the minimum-graded check counts.
+    """
+    raw = json.loads(scores_path.read_text())
+    rows = raw["rows"] if isinstance(raw, dict) else raw
+    by_invoice = {str(r.get("invoice_number")): r for r in rows}
+
+    judged_names = {
+        str(metric)
+        for row in rows
+        for metric in row
+        if metric not in ("case", "invoice_number") and metric not in by_metric
+    }
+
+    merged = dict(by_metric)
+    for metric in judged_names:
+        values: list[Score] = []
+        for invoice in order:
+            value = by_invoice.get(invoice, {}).get(metric)
+            # Three states, and they must survive the read. Collapsing
+            # not-applicable into ungraded reads a healthy run as a collapsed
+            # one: faithfulness is undefined on all thirteen clean invoices, so
+            # the minimum-graded guard would fail the build for the wrong reason.
+            if value == NOT_APPLICABLE:
+                values.append(NOT_APPLICABLE)
+            elif value is None:
+                values.append(None)
+            else:
+                values.append(float(value))
+        merged[metric] = values
+    return merged
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ragas-gate")
     parser.add_argument(
@@ -136,6 +182,15 @@ def main(argv: list[str] | None = None) -> int:
             "No model, no credentials, no cost, so no rubric is required."
         ),
     )
+    parser.add_argument(
+        "--grade",
+        type=Path,
+        help=(
+            "Grade the dataset's prose with the judge model and write the scores here. "
+            "This is the only path that spends money, so the rubric guard applies."
+        ),
+    )
+    parser.add_argument("--judge-model", default=None, help="Override the judge model id.")
     parser.add_argument("--config", type=Path, default=CONFIG)
     parser.add_argument("--rubric", type=Path, default=RUBRIC)
     args = parser.parse_args(argv)
@@ -146,15 +201,51 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ragas-gate: {err}", file=sys.stderr)
         return EXIT_MISCONFIGURED
 
+    if args.grade is not None and args.dataset is None:
+        print(
+            "ragas-gate: --grade needs --dataset — grading reads the saved dataset, "
+            "never a live engine run.",
+            file=sys.stderr,
+        )
+        return EXIT_MISCONFIGURED
+
     if args.dataset is not None:
-        # Free path: every metric here is a lookup against the planted answer
-        # key, so nothing is paid for and the rubric guard does not apply.
+        # The free metrics are lookups against the planted answer key, so this
+        # much costs nothing and the rubric guard does not apply to it.
         try:
-            _, by_metric, case_labels = load_dataset(args.dataset)
+            rows, by_metric, case_labels = load_dataset(args.dataset)
         except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as err:
             print(f"ragas-gate: cannot read dataset at {args.dataset}: {err}", file=sys.stderr)
             return EXIT_MISCONFIGURED
-        print(f"ragas-gate: free metrics over {len(case_labels)} dataset rows, no model called.")
+
+        judged_from = args.scores
+        if args.grade is not None:
+            # The paid path starts here. Refuse before constructing any client.
+            if not rubric_is_usable(args.rubric):
+                print(
+                    f"ragas-gate: no rubric at {args.rubric} — write what a good answer "
+                    "looks like before paying for scores. Refusing to call a model.",
+                    file=sys.stderr,
+                )
+                return EXIT_MISCONFIGURED
+            try:
+                judged_from = run_grading(
+                    args.dataset, args.grade, args.judge_model, args.rubric.read_text()
+                )
+            except Exception as err:  # noqa: BLE001 - report the cause, never a traceback
+                print(f"ragas-gate: grading failed: {err}", file=sys.stderr)
+                return EXIT_MISCONFIGURED
+
+        if judged_from is not None:
+            try:
+                by_metric = merge_judged(by_metric, [r.invoice_number for r in rows], judged_from)
+            except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as err:
+                print(f"ragas-gate: cannot read scores at {judged_from}: {err}", file=sys.stderr)
+                return EXIT_MISCONFIGURED
+            print(f"ragas-gate: {len(case_labels)} dataset rows, judged scores from {judged_from}.")
+        else:
+            print(f"ragas-gate: free metrics over {len(case_labels)} dataset rows, no model called.")
+
         return report(
             by_metric, case_labels, thresholds, min_graded, per_case_metrics, report_only
         )
@@ -189,6 +280,45 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_MISCONFIGURED
 
     return report(by_metric, case_labels, thresholds, min_graded, per_case_metrics, report_only)
+
+
+def run_grading(dataset: Path, out: Path, model: str | None, rubric: str) -> Path:
+    """Grade the dataset's prose and save the scores.
+
+    Imported here rather than at module load so the free paths never pull in the
+    judge, its client or its dependencies. A gate that runs on every push should
+    not need an API key on the import line.
+    """
+    import asyncio
+
+    from .grading import (
+        DEFAULT_JUDGE_MODEL,
+        build_judge,
+        build_metric,
+        build_rubric_metric,
+        grade_rows,
+        load_grading_rows,
+        write_scores,
+    )
+
+    judge_model = model or DEFAULT_JUDGE_MODEL
+    rows = load_grading_rows(dataset)
+    breaches = sum(1 for r in rows if r.expects_breach)
+    print(
+        f"ragas-gate: grading {len(rows)} rows with {judge_model} (cached by content)…\n"
+        f"  rubric_score  on all {len(rows)}\n"
+        f"  faithfulness  on the {breaches} breach row(s) only — undefined on a pass"
+    )
+
+    judge = build_judge(model=judge_model)
+    scored = asyncio.run(
+        grade_rows(rows, build_metric(judge), build_rubric_metric(judge, rubric))
+    )
+    write_scores(out, scored, model=judge_model)
+
+    graded = sum(1 for r in scored if r.get("rubric_score") is not None)
+    print(f"ragas-gate: {graded} of {len(scored)} rows graded, written to {out}")
+    return out
 
 
 def report(

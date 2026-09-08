@@ -1,0 +1,30 @@
+{
+  "model": "claude-haiku-4-5-20251001",
+  "rows": [
+    {
+      "invoice_number": "PROBE-1-breach-good",
+      "case": "probe",
+      "faithfulness": 1.0
+    },
+    {
+      "invoice_number": "PROBE-2-breach-vague",
+      "case": "probe",
+      "faithfulness": 1.0
+    },
+    {
+      "invoice_number": "PROBE-3-breach-invented",
+      "case": "probe",
+      "faithfulness": 0.25
+    },
+    {
+      "invoice_number": "PROBE-4-pass-good",
+      "case": "probe",
+      "faithfulness": 0.0
+    },
+    {
+      "invoice_number": "PROBE-5-pass-vacuous",
+      "case": "probe",
+      "faithfulness": 0.0
+    }
+  ]
+}

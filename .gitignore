@@ -54,3 +54,7 @@ __pycache__/
 
 # Cached model replies for the eval harnesses (content-addressed, rebuildable).
 evals/.cache/
+
+# The judge cache. Re-grading must not re-pay for the same judgement, but the
+# replies themselves are a local artefact, not source.
+evals/ragas/.cache/

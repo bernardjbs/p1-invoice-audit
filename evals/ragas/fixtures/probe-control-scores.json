@@ -1,0 +1,10 @@
+{
+  "model": "claude-haiku-4-5-20251001",
+  "rows": [
+    {
+      "invoice_number": "PROBE-6-breach-good-no-invoice",
+      "case": "probe",
+      "faithfulness": 0.0
+    }
+  ]
+}
