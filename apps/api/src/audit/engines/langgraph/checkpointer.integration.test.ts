@@ -70,8 +70,16 @@ describe('the audit graph checkpointer', () => {
    * every step wrote the whole document into a checkpoint row: a 55KB fixture
    * became megabytes across a run, to store a file already sitting in Storage.
    * The fix was to carry the storage key instead, and this is what stops it being
-   * quietly undone. Mutation-proved by restoring `pdf: Annotation<Buffer>` and
-   * passing real bytes, which takes the largest row from ~1KB to ~75KB.
+   * quietly undone.
+   *
+   * MEASURE `checkpoint_blobs`, NOT `checkpoints`. The first version of this test
+   * summed `octet_length(checkpoint::text)` and could never have failed: that
+   * column holds metadata and channel VERSIONS, while every actual value is a row
+   * in `checkpoint_blobs`. Restoring `pdf: Annotation<Buffer>` and passing 60KB of
+   * bytes left it green, which is how the vacuous assertion was found. Under that
+   * same mutation this version failed with 181,083 bytes against a 16,384 budget:
+   * 60,000 for the `pdf` channel plus 120,162 for `__start__`, where the input is
+   * JSON-encoded and a byte array costs roughly double, plus the ordinary state.
    */
   it('keeps saved state small, because the PDF is a key and not bytes', async () => {
     const invoiceId = crypto.randomUUID()
@@ -82,14 +90,15 @@ describe('the audit graph checkpointer', () => {
       await getCheckpointer(),
     )
 
-    const [row] = await sql<{ largest: string }[]>`
-      select coalesce(max(octet_length(checkpoint::text)), 0)::text as largest
-      from ${sql(CHECKPOINT_SCHEMA)}.checkpoints where thread_id = ${invoiceId}`
+    const [row] = await sql<{ total: string }[]>`
+      select coalesce(sum(octet_length(blob)), 0)::text as total
+      from ${sql(CHECKPOINT_SCHEMA)}.checkpoint_blobs where thread_id = ${invoiceId}`
 
-    // A real invoice PDF is tens of kilobytes; the state without one is a few
-    // hundred bytes of ids, numbers and four check results. 8KB sits far above
-    // the former and far below the latter, so it catches a Buffer coming back
-    // without failing on ordinary growth of the state.
-    expect(Number(row!.largest)).toBeLessThan(8 * 1024)
+    // Every value this run wrote, added up. Measured clean: 2,553 bytes of ids,
+    // numbers and four check results. A single real invoice PDF is tens of
+    // kilobytes and lands twice over (once as its own channel, once inside the
+    // JSON-encoded input), so 16KB sits well above honest growth and well below
+    // any document coming back.
+    expect(Number(row!.total)).toBeLessThan(16 * 1024)
   })
 })
