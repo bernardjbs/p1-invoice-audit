@@ -1,3 +1,4 @@
+import type { BaseCheckpointSaver } from '@langchain/langgraph'
 import { loadAuditInput } from './data'
 import { runLangGraphEngine, type AuditGraphDeps, type AuditGraphInput } from './engines/langgraph'
 import { loadGraphInput } from './engines/langgraph/loaders'
@@ -56,6 +57,11 @@ export type AuditInvoiceOptions = {
   graphLoader?: (invoiceId: string) => Promise<AuditGraphInput>
   /** Overrides parts of the langgraph engine's wiring — the model, the SQL, the agent. */
   graphDeps?: Partial<AuditGraphDeps>
+  /**
+   * The engine's durable memory. Omitted in production, where the Postgres saver
+   * is used; the unit tier passes an in-memory one so it needs no database.
+   */
+  checkpointer?: BaseCheckpointSaver
   engine?: EngineName
 }
 
@@ -72,7 +78,7 @@ export async function auditInvoice(
 
   if (engine === 'langgraph') {
     const input = await (opts.graphLoader ?? loadGraphInput)(invoiceId)
-    return runLangGraphEngine(input, opts.graphDeps ?? {})
+    return runLangGraphEngine(input, opts.graphDeps ?? {}, opts.checkpointer)
   }
 
   const loader = opts.loader ?? loadAuditInput

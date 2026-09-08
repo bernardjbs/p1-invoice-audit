@@ -1,3 +1,4 @@
+import { MemorySaver } from '@langchain/langgraph'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { auditInvoice, runEngine } from './engine'
@@ -115,7 +116,17 @@ const ENGINES: { engine: EngineName; run: () => Promise<AuditResult> }[] = [
   { engine: 'stub', run: async () => runEngine(cleanInput, 'stub') },
   {
     engine: 'langgraph',
-    run: () => auditInvoice('inv-clean', { engine: 'langgraph', graphLoader, graphDeps }),
+    // An in-memory saver, and a fresh one per call. Two reasons, both load-bearing:
+    // the unit tier must not need a database (CI runs it with none), and each case
+    // must start with no history, because `checks` concatenates and this suite runs
+    // the engine repeatedly under one invoice id.
+    run: () =>
+      auditInvoice('inv-clean', {
+        engine: 'langgraph',
+        graphLoader,
+        graphDeps,
+        checkpointer: new MemorySaver(),
+      }),
   },
 ]
 

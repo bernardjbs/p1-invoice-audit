@@ -1,5 +1,7 @@
 import './config/load-env'
-import { auditInvoice } from './audit/engine'
+import { auditInvoice, type AuditInvoiceOptions } from './audit/engine'
+import { resumeLangGraphEngine } from './audit/engines/langgraph'
+import { needsHumanReview, varianceThreshold } from './audit/pause-rule'
 import { persistAuditRun } from './audit/runs'
 import { sql } from './db/client'
 import { archiveJob, readAuditJobs, type AuditJob } from './queue/audit-queue'
@@ -12,28 +14,50 @@ import { archiveJob, readAuditJobs, type AuditJob } from './queue/audit-queue'
  * invoice status. No check logic here — that all lives behind the seam.
  */
 
-const VARIANCE_THRESHOLD = Number(process.env.AUDIT_VARIANCE_THRESHOLD ?? '0.05')
 const POLL_MS = Number(process.env.WORKER_POLL_MS ?? '2000')
 
-/** Process one job: audit the invoice, persist the run, set the final status. */
-async function processJob(job: AuditJob): Promise<void> {
-  const result = await auditInvoice(job.invoiceId)
+/**
+ * Process one job: audit the invoice, persist the run, set the final status.
+ *
+ * `opts` is the seam's own options bag, passed straight through. It exists so an
+ * integration test can drive this exact code path with fake models instead of
+ * paying for a vision call and a judge on every run. Production passes nothing.
+ */
+async function processJob(job: AuditJob, opts: AuditInvoiceOptions = {}): Promise<void> {
+  // A decision came back from a person: continue the suspended run rather than
+  // starting a new audit. Nothing is persisted here. The run and its four checks
+  // were written when it paused, and the decision row and the invoice's status
+  // were written by the approve request before this job was queued, so a
+  // redelivered resume repeats no writes. See `enqueueResume` for why this is a
+  // job at all.
+  if (job.kind === 'resume') {
+    const resumed = await resumeLangGraphEngine(
+      job.invoiceId,
+      job.decision ?? 'approved',
+      opts.graphDeps ?? {},
+      opts.checkpointer,
+    )
+    if (!resumed) {
+      console.log(`[worker] nothing suspended for invoice ${job.invoiceId}; resume is a no-op`)
+    }
+    return
+  }
+
+  const result = await auditInvoice(job.invoiceId, opts)
   await persistAuditRun(job.invoiceId, result)
-  // Pass only when the audit is clean AND within the variance threshold;
-  // anything else pauses for human review (plan T7).
-  const status =
-    result.overall === 'pass' && result.variancePct <= VARIANCE_THRESHOLD
-      ? 'passed'
-      : 'paused_review'
+  // The SAME rule the langgraph engine uses to suspend itself (`audit/pause-rule.ts`).
+  // It has to be the same one: if the engine paused a run while this marked the
+  // invoice passed, the suspended run would be invisible with no way to resume it.
+  const status = needsHumanReview(result.overall, result.variancePct) ? 'paused_review' : 'passed'
   await sql`update invoices set status = ${status} where id = ${job.invoiceId}`
 }
 
 /** Drain the currently-available jobs once. Returns how many were read. */
-export async function runWorkerOnce(): Promise<number> {
+export async function runWorkerOnce(opts: AuditInvoiceOptions = {}): Promise<number> {
   const jobs = await readAuditJobs()
   for (const { msgId, job } of jobs) {
     try {
-      await processJob(job)
+      await processJob(job, opts)
     } catch (err) {
       // Poison message (e.g. invoice deleted) — drop it so the loop keeps
       // draining rather than stalling. A real DLQ (read_ct routing) is a Phase-B
@@ -46,7 +70,7 @@ export async function runWorkerOnce(): Promise<number> {
 }
 
 async function loop(): Promise<void> {
-  console.log(`audit worker started (threshold ${VARIANCE_THRESHOLD}, poll ${POLL_MS}ms)`)
+  console.log(`audit worker started (threshold ${varianceThreshold()}, poll ${POLL_MS}ms)`)
   for (;;) {
     const n = await runWorkerOnce()
     if (n > 0) console.log(`processed ${n} audit job(s)`)

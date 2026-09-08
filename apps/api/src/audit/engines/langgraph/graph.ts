@@ -1,5 +1,5 @@
 import type { BaseCheckpointSaver } from '@langchain/langgraph'
-import { Annotation, END, START, StateGraph } from '@langchain/langgraph'
+import { Annotation, END, START, StateGraph, interrupt } from '@langchain/langgraph'
 import type { ExtractedInvoice } from '../../extraction'
 import {
   CHECK_TYPES,
@@ -92,6 +92,13 @@ export type AuditGraphDeps = {
     vendorId: string,
     poNumber?: string,
   ) => Promise<CheckResult>
+  /**
+   * Whether this result must stop for a person. Injected rather than imported so
+   * a test can pin the policy without touching the environment, and so the graph
+   * and the worker provably share one rule (`audit/pause-rule.ts`) instead of
+   * keeping two copies that can drift apart.
+   */
+  needsHumanReview: (overall: Verdict, variancePct: number) => boolean
 }
 
 /** Overall verdict is the worst individual verdict — one fail outranks three passes. */
@@ -121,8 +128,10 @@ function inContractOrder(checks: CheckResult[]): CheckResult[] {
  * and the checks wait for both. Then four checks in parallel, then one aggregate.
  *
  *            ┌─ extract ─┐
- *   START ──►│           ├──► math · po_match · price · contract_terms ──► aggregate ──► END
- *            └─ load ────┘
+ *   START ──►│           ├──► math · po_match · price · contract_terms ──► aggregate ──► pause ──► END
+ *            └─ load ────┘                                                                  │
+ *                                                                    suspends here when a human is needed,
+ *                                                                    and resumes on the same thread later
  */
 export function buildAuditGraph(deps: AuditGraphDeps, checkpointer?: BaseCheckpointSaver) {
   const CHECK_NODES = ['math', 'po_match', 'price', 'contract_terms'] as const
@@ -143,10 +152,34 @@ export function buildAuditGraph(deps: AuditGraphDeps, checkpointer?: BaseCheckpo
       checks: [await deps.judgeContractTerms(state.extracted, state.vendorId, state.po?.poNumber)],
     }))
     .addNode('aggregate', (state) => ({ overall: rollUp(state.checks) }))
+    /**
+     * The human gate. Its own node, AFTER aggregate, and that is not cosmetic: a
+     * node that interrupts never reaches its return statement, so computing the
+     * overall verdict here would mean the verdict was never written to state and
+     * a paused run would surface with no result at all.
+     *
+     * SAFE TO RUN TWICE. On resume the interrupted node re-runs from its first
+     * line, so everything before `interrupt()` happens again. Here that is one
+     * comparison over values already in state. Nothing that writes, sends or
+     * charges may ever go above this line: persisting belongs to the worker,
+     * after the run comes back.
+     */
+    .addNode('pause', (state) => {
+      if (!deps.needsHumanReview(state.overall, state.variancePct)) return {}
+      // Returns the decision when resumed; throws GraphInterrupt the first time.
+      // Deliberately not wrapped in try/catch: that error is control flow.
+      interrupt({
+        invoiceId: state.invoiceId,
+        overall: state.overall,
+        variancePct: state.variancePct,
+      })
+      return {}
+    })
     .addEdge(START, 'extract')
     .addEdge(START, 'load')
     .addEdge([...CHECK_NODES], 'aggregate')
-    .addEdge('aggregate', END)
+    .addEdge('aggregate', 'pause')
+    .addEdge('pause', END)
 
   // Every check waits for BOTH starts: they all read the extracted invoice, and
   // three of them also read what `load` fetched.

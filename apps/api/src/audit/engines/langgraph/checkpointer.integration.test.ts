@@ -39,6 +39,9 @@ const deps: AuditGraphDeps = {
     verdict: 'pass',
     evidence: { summary: 'No clauses on file.' },
   }),
+  // These cases measure what a COMPLETED run writes. Pausing is the HITL specs'
+  // subject; suspending here would stop the run before its last checkpoint.
+  needsHumanReview: () => false,
 }
 
 beforeAll(async () => {
@@ -66,7 +69,7 @@ describe('the audit graph checkpointer', () => {
   })
 
   /**
-   * THE GUARD FOR THE PDF FIX. `AuditState` carried `pdf: Buffer` until T9, so
+   * THE GUARD FOR THE PDF FIX. `AuditState` carried `pdf: Buffer` until checkpointing landed, so
    * every step wrote the whole document into a checkpoint row: a 55KB fixture
    * became megabytes across a run, to store a file already sitting in Storage.
    * The fix was to carry the storage key instead, and this is what stops it being

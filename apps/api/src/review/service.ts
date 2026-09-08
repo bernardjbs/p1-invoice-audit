@@ -1,5 +1,6 @@
 import { HTTPException } from 'hono/http-exception'
 import { sql } from '../db/client'
+import { enqueueResume } from '../queue/audit-queue'
 
 /**
  * Review services (plan T8) — HITL as a status-flag flow. The queue is the set
@@ -74,4 +75,12 @@ export async function submitReview(
       values (${invoiceId}, ${run?.id ?? null}, ${decision}, ${note ?? null}, now())`
     await tx`update invoices set status = ${decision} where id = ${invoiceId}`
   })
+
+  // The decision is now durable. Hand the waiting run its answer on the queue
+  // rather than finishing it here (RULED 2026-09-08): this request must never be
+  // the thing that loses a person's decision, so recording it and completing the
+  // run are two facts, and a failed resume retries instead of taking the decision
+  // down with it. Invoices audited by an engine that never suspends have nothing
+  // waiting, and the resume is a logged no-op.
+  await enqueueResume(invoiceId, decision)
 }

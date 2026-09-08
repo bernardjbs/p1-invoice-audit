@@ -29,7 +29,6 @@ apps/api/src/vendors/routes.ts	/** Vendor routes (plan T6). Mounted under /api b
 apps/api/src/worker.integration.test.ts	* Queue-driven audit worker (plan T7, criterion 4 at API level). Integration
 apps/api/src/worker.ts	* `bun run worker`; in prod a pg_cron consumer drives the same processing (T14,
 apps/api/src/worker.ts	* The background audit worker (plan T7). In dev it long-polls the pgmq queue via
-apps/api/src/worker.ts	// anything else pauses for human review (plan T7).
 apps/web/src/app/root-layout.tsx	/** App shell: top nav + routed content (plan T9). */
 apps/web/src/app/router.tsx	* T9–T12 each add/replace a page here; the tree is the one shared file, so the
 apps/web/src/features/invoices/api.ts	// refresh (plan T11).

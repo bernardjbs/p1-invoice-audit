@@ -43,6 +43,10 @@ function cleanDeps(overrides: Partial<AuditGraphDeps> = {}): AuditGraphDeps {
       { itemCode: 'PUMP-01', rateAud: 1000 },
       { itemCode: 'VALVE-02', rateAud: 50 },
     ],
+    // Never pause by default: these cases assert the graph's shape and its
+    // parallel writes, and a suspended run would return before they could.
+    // The pause itself is covered by the HITL specs.
+    needsHumanReview: () => false,
     judgeContractTerms: async () => passingContractTerms,
     ...overrides,
   }
