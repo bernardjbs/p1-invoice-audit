@@ -9,9 +9,14 @@ on:
 # Two pushes in quick succession would otherwise run two full e2e jobs at once,
 # each pulling the Supabase images, seeding through 32 OpenAI embedding calls and
 # (on main) making the vision calls. Only the newest ref is worth paying for.
+#
+# Cancellation stops at `main`. A cancelled run is recorded as "cancelled", not
+# "failed", so cancelling on main would let a real regression that the real-engine
+# suite was about to catch disappear without ever going red. Paying twice for a
+# duplicate run is the cheaper mistake.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   build:
