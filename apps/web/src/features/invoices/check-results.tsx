@@ -15,7 +15,17 @@ export function CheckResultCard({ check }: { check: CheckResult }) {
       </CardHeader>
       <CardContent className="space-y-1 text-sm">
         <p>{check.evidence.summary}</p>
-        {(check.evidence.expected !== undefined || check.evidence.actual !== undefined) && (
+        {/*
+          `sourceRef` has to be in this guard, not just in the body. It was
+          omitted, and the contract-terms check is the one evidence shape that
+          carries a citation and NO expected/actual, so the clause reference it
+          retrieved reached the database and then died here: the run persisted
+          `MSA-1000 §6` while the card rendered no Source row at all. That is
+          golden criterion 3 failing at the view layer, invisibly.
+        */}
+        {(check.evidence.expected !== undefined ||
+          check.evidence.actual !== undefined ||
+          check.evidence.sourceRef !== undefined) && (
           <dl className="text-muted-foreground grid grid-cols-[auto_1fr] gap-x-3">
             {check.evidence.expected !== undefined && (
               <>
@@ -32,7 +42,15 @@ export function CheckResultCard({ check }: { check: CheckResult }) {
             {check.evidence.sourceRef !== undefined && (
               <>
                 <dt>Source</dt>
-                <dd className="font-mono">{check.evidence.sourceRef}</dd>
+                {/*
+                  NOT `check-source`. The specs count the check cards with
+                  `[data-testid^="check-"]`, so a `check-`-prefixed id anywhere
+                  inside a card is counted as a fifth card and breaks every
+                  four-card assertion. Measured: it did.
+                */}
+                <dd className="font-mono" data-testid="evidence-source">
+                  {check.evidence.sourceRef}
+                </dd>
               </>
             )}
           </dl>

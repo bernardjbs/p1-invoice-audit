@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { CheckResults } from './check-results'
 import type { CheckResult } from './types'
@@ -33,5 +33,34 @@ describe('CheckResults', () => {
     expect(screen.getByText('6000.00')).toBeDefined()
     // verdicts render (a Fail label for the unapproved vendor)
     expect(screen.getByText('Fail')).toBeDefined()
+  })
+
+  /**
+   * The contract-terms shape: a citation and NO expected/actual. Every check
+   * above carries expected/actual alongside its sourceRef, which is how the
+   * citation came to be nested inside a guard that required them: the real
+   * contract-terms evidence has neither, so a retrieved clause reference was
+   * persisted to the database and then dropped by this component. Golden
+   * criterion 3 depends on it reaching the page.
+   */
+  it('renders the citation when the evidence carries only a sourceRef', () => {
+    // Scoped with `within(container)`: there is no global auto-cleanup here, and
+    // `render`'s own queries are bound to document.body, so both would still see
+    // the previous test's cards.
+    const { container } = render(
+      <CheckResults
+        checks={[
+          {
+            type: 'contract_terms',
+            verdict: 'fail',
+            evidence: {
+              summary: 'Weekend call-out loading is not permitted without prior written approval.',
+              sourceRef: 'MSA-1000 §6',
+            },
+          },
+        ]}
+      />,
+    )
+    expect(within(container).getByTestId('evidence-source').textContent).toBe('MSA-1000 §6')
   })
 })

@@ -35,15 +35,25 @@ the API and web dev servers are started as Playwright `webServer`s.
   own. Read `fixtures/README.md` on what these four check cards do and do not
   prove before changing anything there.
 
+- `contract-citation.spec.ts`: golden criterion 3. Uploads
+  `fixtures/clause-breach-invoice.pdf` (Pilbara Pumps, billing a weekend call-out
+  loading that MSA-1000 §6 forbids) and asserts the contract-terms card renders a
+  citation of the clause retrieved from the corpus, and that the evidence is not
+  the "no clauses on file" short-circuit. **Self-gating**: it skips itself unless
+  `AUDIT_ENGINE=langgraph`, because the mock engine emits no `sourceRef` at all
+  and putting this in `audit-flow` would redden the cheap tier. A plain
+  `bun run e2e` reports it as skipped, visibly, rather than not existing.
+
 ## The real engine
 
 ```
 AUDIT_ENGINE=langgraph doppler run -c dev -- bun run e2e
 ```
 
-The same two specs, untouched, against the LangGraph engine. It downloads the
-uploaded PDF from Storage and a vision model reads it, so the verdicts come from
-the fixture's own printed numbers rather than the upload form's.
+All three specs against the LangGraph engine. It downloads the uploaded PDF from
+Storage and a vision model reads it, so the verdicts come from the fixture's own
+printed numbers rather than the upload form's. This is the only configuration in
+which `contract-citation.spec.ts` executes.
 
 ## CI
 
