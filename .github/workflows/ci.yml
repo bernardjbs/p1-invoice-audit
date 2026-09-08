@@ -22,7 +22,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 is load-bearing, not caution. The eval-freshness check
+      # compares COMMIT timestamps (a fresh checkout rewrites every mtime, so
+      # mtimes cannot answer it), and the default single-commit clone leaves
+      # `git log` with nothing to compare. The script refuses rather than passing
+      # in that case, so removing this line turns the job red, not silently green.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # Bun is the package manager; Node is the runtime (CONVENTIONS §29 —
       # dev is Bun, prod is Node, so CI runs the checks on Node to catch divergence).
@@ -40,8 +47,34 @@ jobs:
       - run: bun run test
       - run: bun run build
 
-      # P1 eval gate (RAGAS thresholds for agent/RAG behaviour) slots in HERE —
-      # see CONVENTIONS §13. It fails the job when a metric regresses.
+      # --- The eval gate (CONVENTIONS §13) -------------------------------------
+      #
+      # Everything in THIS job is free: no model is called, no key is needed. The
+      # expensive half lives in `eval-grade` below, on main only, mirroring the
+      # cadence already ruled for the real engine (2026-09-07).
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # FIRST, because the rest is meaningless without it. The gate marks a saved
+      # RECORDING of what the engine said, so an engine change with no rebuild
+      # leaves the gate scoring the old engine and passing. This refuses that
+      # build instead of trusting someone to remember.
+      - name: The eval dataset must not predate the engine it grades
+        run: bash scripts/check-eval-dataset-fresh.sh
+
+      # The free metrics recompute from the answer key on every run, so they can
+      # never drift from what a row expects. The judged scores come from the
+      # committed file that `eval-grade` produced.
+      - name: Eval gate (free metrics + the committed judged scores)
+        run: >
+          uv run --project evals/ragas ragas-gate
+          --dataset evals/ragas/dataset.jsonl
+          --scores evals/ragas/scores.json
+
+      - name: The eval harness's own tests
+        run: uv run --project evals/ragas pytest evals/ragas/tests -q
 
   # The cheap regression tier: the same acceptance specs against the deterministic
   # mock engine, on every pull request and every push to `main`. No model reads
@@ -142,3 +175,50 @@ jobs:
           name: playwright-results-langgraph
           path: test-results/
           retention-days: 7
+
+  # The paid half of the eval gate: Claude re-marks all twenty summaries.
+  #
+  # Gated to `main` and manual dispatch, the same cadence ruled for the real
+  # engine (2026-09-07) and for the same reason: a judged score is
+  # non-deterministic, so it must never redden a pull request that changed no
+  # code. Every push still gets the free metrics and the freshness check in
+  # `build`, which are the parts that catch a broken dataset or a stale one.
+  #
+  # What re-marking adds over the committed scores: it catches judge DRIFT (the
+  # model behind the marker changes and the same prose scores differently) and it
+  # catches a scores file that was edited rather than produced. Neither is
+  # visible to a run that only reads the committed numbers.
+  #
+  # `needs: build` because this spends money; a lint error, a stale dataset or a
+  # failing threshold should stop it before any of that.
+  eval-grade:
+    name: eval gate (fresh judged scores)
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: dopplerhq/cli-action@v4
+
+      # Writes fresh scores to a path OUTSIDE the repo copy that is committed, so
+      # a green run here can never be mistaken for the committed artefact, and a
+      # drifted score shows up as a failure rather than as a quiet file edit.
+      - name: Re-mark the summaries with the judge
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+        run: >
+          doppler run -p p1-invoice-audit -c ci --
+          uv run --project evals/ragas ragas-gate
+          --dataset evals/ragas/dataset.jsonl
+          --grade "${RUNNER_TEMP}/fresh-scores.json"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-fresh-scores
+          path: ${{ runner.temp }}/fresh-scores.json
+          retention-days: 30
