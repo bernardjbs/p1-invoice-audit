@@ -17,6 +17,7 @@ import { loadPo } from '../../apps/api/src/audit/engines/langgraph/loaders'
 import { PLANTED_VIOLATIONS } from '../../apps/api/src/db/contract-docs'
 import { downloadInvoicePdf } from '../../apps/api/src/lib/storage'
 import { cachingJudge, cachingReader, describe, newStats } from '../lib/model-cache'
+import { renderInvoice } from '../lib/render-invoice'
 
 /**
  * Build the fixed grading dataset for the contract-terms step.
@@ -81,6 +82,14 @@ type Row = {
   question: string
   retrieved_refs: string[]
   retrieved_contexts: string[]
+  /**
+   * The invoice as the engine read it, for the judge to check invoice claims
+   * against. Kept OUT of `retrieved_contexts` deliberately: that field is the
+   * honest record of what the retriever returned, and `retrieval_recall` is a
+   * statement about retrieval alone. Assembling the judge's view from the two
+   * is a grading-time decision, visible in the grading code.
+   */
+  invoice_rendered: string
   /** The prose under judgement. The only field that needs a model to grade. */
   answer: string
   cited_ref: string | null
@@ -137,6 +146,7 @@ async function buildRow(inv: InvoiceRow): Promise<Row> {
     question,
     retrieved_refs: seen.map((c) => c.sourceRef),
     retrieved_contexts: seen.map((c) => c.text),
+    invoice_rendered: renderInvoice(extracted),
     answer: check.evidence.summary,
     cited_ref: check.evidence.sourceRef ?? null,
     verdict: classify(check.verdict),
