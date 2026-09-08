@@ -70,6 +70,30 @@ const CASE_BY_INVOICE: Record<string, string> = {
  * Grading the exact label would measure a distinction the ground truth does not
  * make, and would fail the engine for a defensible answer.
  */
+/**
+ * What is actually true about this invoice, for the judge to mark the summary
+ * against. A statement of fact, never a description of what a good answer
+ * should do: an instruction here ("the correct answer explains why...") has the
+ * judge comparing prose to a directive.
+ *
+ * For a pass, it says ONLY what the answer key knows, which is that no
+ * violation was planted. Two earlier wordings both under-marked correct
+ * answers, and both for the same reason -- they asserted specifics the answer
+ * key does not have:
+ *
+ *   "…the charges sit within the agreed rate card"  scored a good pass 0.25,
+ *   and scored the no-contract invoice 0.00, because that vendor has no rate
+ *   card and no clauses at all. Inventing detail in the reference is the same
+ *   failure the rubric ranks worst, committed on the marking side.
+ */
+function referenceFor(planted: { breach: string } | undefined, caseName: string): string {
+  if (planted) return planted.breach
+  if (caseName === 'no-contract') {
+    return 'No contract is on file for this vendor, so there is no term that this invoice could breach.'
+  }
+  return 'Nothing on this invoice breaches the contract.'
+}
+
 type VerdictClass = 'pass' | 'breach'
 function classify(verdict: string): VerdictClass {
   return verdict === 'pass' ? 'pass' : 'breach'
@@ -153,9 +177,7 @@ async function buildRow(inv: InvoiceRow): Promise<Row> {
     raw_verdict: check.verdict,
     expected_ref: planted?.sourceRef ?? null,
     expected_verdict: planted ? 'breach' : 'pass',
-    reference: planted
-      ? planted.breach
-      : 'No contract term is breached by this invoice, so the correct answer explains why the contract does not object.',
+    reference: referenceFor(planted, caseName),
   }
 }
 

@@ -120,20 +120,25 @@ actually says.
 
 ### Score 3
 
-Accurate and supported, but vacuous. True, and conveys nothing a reviewer could act on. A breach
-summary that only restates the clause or only asserts that something is wrong, or a pass that asserts
-the invoice is fine without saying why the contract does not object.
+Accurate and supported, but vacuous: true, and conveying nothing a reviewer could act on. A breach
+summary that only restates the clause or only asserts that something is wrong. A pass that only
+asserts the invoice is fine.
 
 ### Score 4
 
-Says what the invoice did and rests it on the right clause, but thin: a relevant fact is missing, or
-the link between the charge and the term it offends is left partly implicit.
+Explains itself, but thinly. For a breach, names the offending fact but leaves the link to the clause
+partly implicit, or omits a relevant detail. For a pass, names what was checked without saying why
+that settles the question.
 
 ### Score 5
 
-Names the specific fact about this invoice that triggers the breach, supported by the cited clause or
-the invoice as rendered, with no invented or altered obligation. For a pass, explains why the contract
-does not object rather than only asserting it.
+For a breach: names the specific fact about this invoice that triggers it, resting on the cited clause
+or the invoice as rendered, with no invented or altered obligation. For a pass: says what was checked
+and why the contract therefore does not object.
+
+A pass is held to the same standard of self-explanation as a breach, and to no more than that.
+Passes are the majority case, and demanding an essay for each one would inflate cost for no
+diagnostic gain.
 
 ## Scope
 
