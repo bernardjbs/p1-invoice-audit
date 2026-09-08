@@ -28,8 +28,9 @@ Gate tiers (per `docs/development-workflow.md` in the build home): pre-push runs
 (lint + typecheck + test); CI runs the full tier on Node; post-deploy runs a smoke.
 
 `bun run lint` also runs `scripts/check-plan-citations.sh` — see "Citing a plan from code" in
-`CONVENTIONS.md`. It is a ratchet: new bare `Tn` references fail, the 51 grandfathered ones are
-baselined, and the allowance can only shrink.
+`CONVENTIONS.md`. It is a ratchet: new bare `Tn` references fail, the grandfathered ones are
+baselined, and the allowance can only shrink. The script prints the current count; do not trust a
+number written in prose here or anywhere else.
 
 **⚠️ Node 22 is required for ANY gate, test tier, push or build.**
 

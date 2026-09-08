@@ -591,9 +591,10 @@ react-hook-form, Zustand.
   citing a **decision** whose reasoning should stay traceable; otherwise drop the reference and keep the
   _why_, which is the part that survives the plan being archived. **Enforced** by
   `scripts/check-plan-citations.sh` (runs inside `bun run lint`, so pre-push and CI both catch it): a
-  ratchet over `scripts/plan-citations-baseline.txt`, which grandfathers the 51 pre-existing Phase A
-  references. New ones fail; fixing one means deleting its baseline line, and a stale baseline entry
-  fails too, so the allowance can only shrink. **Undated `plan Tn` in existing code means the Phase A
+  ratchet over `scripts/plan-citations-baseline.txt`, which grandfathers the pre-existing Phase A
+  references (51 at introduction, 46 as of 2026-09-08 — the count is whatever the baseline file holds,
+  and quoting a fixed number here just goes stale). New ones fail; fixing one means deleting its
+  baseline line, and a stale baseline entry fails too, so the allowance can only shrink. **Undated `plan Tn` in existing code means the Phase A
   plan** (`2026-08-29-p1-phase-a-app-shell`) — that one line resolves the whole backlog without churn.
 - **Dependencies:** pin; Renovate; prefer existing/stdlib over new deps.
 - **Git/commit conventions:** live in `CONTRIBUTING.md`, not here — cross-reference.

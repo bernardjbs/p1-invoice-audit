@@ -38,3 +38,6 @@ docs/handover.md
 
 # Playwright JSON report (written by the criterion-3 guard step in CI).
 playwright-report.json
+
+# Agent worktrees (isolated parallel sessions; contents never belong to a commit).
+.claude/worktrees/
