@@ -12,7 +12,7 @@ requirements.
 
 > **What is actually deployed:** the full application — database, synthetic AU corpus, generated
 > invoice PDFs, API, queue-driven worker, React frontend — with the audit engine **mocked** behind a
-> single seam. The real LangGraph engine is built and green locally (10 of 15 tasks) and replaces the
+> single seam. The real LangGraph engine is built and green locally (12 of 15 tasks) and replaces the
 > mock at the end of that phase. This README says which parts are live and which are local, because a
 > portfolio that overstates itself is worse than one that ships less.
 
@@ -158,7 +158,7 @@ and nothing else — which is the point of building the same app three times.
 
 ## Status
 
-Phase A shipped and deployed. Phase B (the real engine) is 10 of 15 tasks: extraction with its eval
+Phase A shipped and deployed. Phase B (the real engine) is 12 of 15 tasks: extraction with its eval
 gate, the deterministic checks, the retrieval seam, the contract corpus, the RAG agent, and
 injection containment are all built and green — and as of 2026-09-07 they are wired into one
 LangGraph state graph behind the seam, so `AUDIT_ENGINE=langgraph` runs a real audit end to end
@@ -169,6 +169,18 @@ point, proved by not editing a test to make it green — and the audit has becom
 itself when an invoice needs a person, saves its state to Postgres, and is finished later by a
 different process. That last part is proved by killing the worker mid-pause and resuming from a
 fresh one.
+
+Every audit run is now traced to LangSmith with the trace linked from the invoice detail view, and an
+invoice pausing for review posts a Slack notification (best-effort — a Slack outage can never fail an
+audit). The quality gate is part-built: a fixed 20-row dataset is generated from real audit runs, and
+three of its four measures are exact comparisons against the planted answer key rather than model
+judgements. Grading the written explanations is the remaining piece.
+
+That gate has already paid for itself. On its first run it found the engine ruling on contract
+breaches without having been shown the deciding clause: retrieval returned the four closest clauses
+where each contract holds eight, and the clause that decided the case ranked fifth on three of five
+faulty invoices. Fixed by sending the whole contract when it fits rather than by picking a larger
+number, which cleared all three misses and a false breach on a clean invoice.
 
 The RAGAS evaluation gate, tracing, notifications and the deploy are still ahead. **Continuous
 integration for the real-engine suite is written but has not yet run.**
