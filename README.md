@@ -172,18 +172,34 @@ fresh one.
 
 Every audit run is now traced to LangSmith with the trace linked from the invoice detail view, and an
 invoice pausing for review posts a Slack notification (best-effort — a Slack outage can never fail an
-audit). The quality gate is part-built: a fixed 20-row dataset is generated from real audit runs, and
-three of its four measures are exact comparisons against the planted answer key rather than model
-judgements. Grading the written explanations is the remaining piece.
+audit).
 
-That gate has already paid for itself. On its first run it found the engine ruling on contract
+The quality gate is built and green. A fixed 20-row dataset is generated from real audit runs; three
+of its measures are exact comparisons against the planted answer key rather than model judgements,
+and the written explanations are marked by a model against a rubric kept in the repo. The gate runs
+in continuous integration in two halves — the free comparisons on every push, the paid marking on
+`main` only — and it refuses to run at all if the recording it grades is older than the engine that
+produced it.
+
+The marker itself was calibrated against five summaries of known quality before any of its numbers
+were trusted, and it failed two of the five: it could not distinguish a deliberately vague answer
+from a good one, and it scored a correct pass explanation zero. Both are recorded in the repo along
+with what changed as a result.
+
+That gate has already paid for itself twice. On its first run it found the engine ruling on contract
 breaches without having been shown the deciding clause: retrieval returned the four closest clauses
 where each contract holds eight, and the clause that decided the case ranked fifth on three of five
 faulty invoices. Fixed by sending the whole contract when it fits rather than by picking a larger
 number, which cleared all three misses and a false breach on a clean invoice.
 
-The RAGAS evaluation gate, tracing, notifications and the deploy are still ahead. **Continuous
-integration for the real-engine suite is written but has not yet run.**
+Then it found that the engine's summaries for clean invoices were no better than saying nothing — a
+deliberately vacuous summary scored the same as the real one, because the prompt asked what
+*concerned* the model and a clean invoice concerns it not at all, so it hedged. Giving the pass case
+its own instruction moved the measured score from 0.562 to 0.688 and turned the gate from failing to
+passing.
+
+A thin MCP server and the deploy are still ahead. **Continuous integration for the real-engine suite
+is written but has not yet run.**
 
 ---
 
