@@ -194,7 +194,7 @@ number, which cleared all three misses and a false breach on a clean invoice.
 
 Then it found that the engine's summaries for clean invoices were no better than saying nothing — a
 deliberately vacuous summary scored the same as the real one, because the prompt asked what
-*concerned* the model and a clean invoice concerns it not at all, so it hedged. Giving the pass case
+_concerned_ the model and a clean invoice concerns it not at all, so it hedged. Giving the pass case
 its own instruction moved the measured score from 0.562 to 0.688 and turned the gate from failing to
 passing.
 
