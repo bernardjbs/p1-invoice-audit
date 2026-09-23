@@ -17,6 +17,7 @@
     "typecheck:ops": "tsc -p tsconfig.ops.json",
     "test": "bun run --filter '*' test && bun run test:evals",
     "test:integration": "bun run --filter '@starter/api' test:integration",
+    "test:integration:ci": "bun run --filter '@starter/api' test:integration:ci",
     "seed": "bun run --filter '@starter/api' seed",
     "build": "bun run --filter '*' build",
     "e2e": "playwright test",

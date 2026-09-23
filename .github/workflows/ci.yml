@@ -101,13 +101,19 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
       - uses: dopplerhq/cli-action@v4
 
       - run: bun install --frozen-lockfile
       - run: bunx playwright install --with-deps chromium
+
+      # No `setup-node` here, deliberately (RULED 2026-09-23). Every command in
+      # this job is `bun`, `bunx` or `bash`, so pinning Node 22 pinned something
+      # nothing read — and a dead setup step reads as Node coverage that does not
+      # exist. The Bun-vs-Node divergence CONVENTIONS §29 is guarding against is
+      # caught by the post-deploy smoke instead, which drives the artefact that
+      # actually ships: one Bun-built bundle, executed by Node, on Vercel. Running
+      # this suite under Node would exercise the TypeScript source on Node, which
+      # is a third thing that ships nowhere.
 
       # The suite's own global-setup runs `supabase db reset` and a seed that
       # uploads invoice PDFs to Storage, so CI needs the real local stack, not a
@@ -142,9 +148,6 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
       - uses: dopplerhq/cli-action@v4
 
       - run: bun install --frozen-lockfile
@@ -175,6 +178,57 @@ jobs:
           name: playwright-results-langgraph
           path: test-results/
           retention-days: 7
+
+  # The integration tier, minus everything that calls a paid model.
+  #
+  # Gated to `main` and manual dispatch (RULED 2026-09-23), the same cadence as
+  # the real-engine e2e and the judged eval gate, and for the same reason: a
+  # model changing its mind must never redden a pull request that changed no
+  # code. The six model-calling files are excluded in
+  # `vitest.integration-ci.config.ts`, which explains how that list was derived.
+  #
+  # WHY IT EXISTS: two golden-success criteria are proven ONLY here and by
+  # nothing else in CI — durability (a paused audit survives its worker being
+  # SIGKILLed and finishes in another process) and tracing (a real run records a
+  # real trace URL). Before this job they ran on one laptop, so "proven in CI"
+  # was not true of either.
+  #
+  # It needs the same local Supabase the e2e jobs start, and the same Doppler
+  # `ci` config: the seed embeds 32 contract clauses through OpenAI, and
+  # `config/env` validates both model keys at import even though this slice
+  # never spends them.
+  integration:
+    name: integration (no paid models)
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: dopplerhq/cli-action@v4
+
+      - run: bun install --frozen-lockfile
+
+      - name: Start the local Supabase stack
+        run: bash .github/scripts/start-supabase.sh
+
+      # The tier asserts against seeded rows, so the database must be reset and
+      # seeded first — the e2e suite gets this from its own global-setup, which
+      # this job does not run.
+      - name: Reset and seed
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+        run: |
+          bunx supabase db reset --local
+          doppler run -p p1-invoice-audit -c ci -- bun run seed
+
+      - name: Run the integration tier (model-calling files excluded)
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+        run: doppler run -p p1-invoice-audit -c ci -- bun run test:integration:ci
 
   # The paid half of the eval gate: Claude re-marks all twenty summaries.
   #

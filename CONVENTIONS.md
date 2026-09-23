@@ -362,9 +362,9 @@ test`). A pure unit needs no environment; a component test opts into jsdom per f
 | **Full** (CI)           | every PR + push to `main` | fast tier **on Node** + `build` + the eval gate | `.github/workflows/ci.yml` |
 | **Smoke** (post-deploy) | after a deploy            | a health probe against the live surface         | deploy step                |
 
-Runtime split (§29): the fast tier runs locally on **Bun**; CI runs the full tier on **Node** to
-catch Bun↔Node divergence. Prefer a **gate over a guideline** — machine-checkable beats a convention
-nobody runs.
+Runtime split (§29): every tier runs on **Bun**; the **post-deploy smoke is the Node check**, because
+it drives the bundle that actually ships. Prefer a **gate over a guideline** — machine-checkable beats
+a convention nobody runs, and a setup step nobody reads is worse than either.
 
 **Baseline lint:** ESLint flat config (`eslint.config.js`) — `@eslint/js` + `typescript-eslint`
 recommended, React-hooks rules for `apps/web`, `eslint-config-prettier` last so Prettier owns
@@ -576,10 +576,16 @@ react-hook-form, Zustand.
   **Public Beta** (since Oct 2025). Keep production on **Node** (GA); the Bun runtime is not where a
   portfolio's prod tier belongs yet. (Want Bun in prod properly → self-host a container, e.g. Fly.io/
   Railway/`oven/bun` image — off Vercel's function model.)
-- **Because dev (Bun) ≠ prod (Node), run the CI integration/e2e tier on Node** to catch runtime
-  divergence. Unit tier on Bun is fine. Sharp edges: `node:http`/`node:https` internals, `node:crypto`
-  (missing key types/ciphers), `node:async_hooks`/`AsyncLocalStorage` (partial — matters for Hono
-  request-context middleware).
+- **Because dev (Bun) ≠ prod (Node), SOMETHING must exercise Node before users do** — but make it
+  the artefact you actually ship. Where deploy bundles the API first (`bun build` → one ESM file run
+  by Node), three things exist: source-on-Bun (local + tests), bundle-on-Node (production), and
+  source-on-Node — which ships nowhere. Running the e2e tier under Node builds the third; the
+  **post-deploy smoke drives the second**, so that is the Node check. Prefer it, and **delete any
+  Node setup step the test jobs do not read** — a dead one reads as coverage you do not have.
+  (Ruled 2026-09-23 after measuring: the API's 155 extensionless relative imports need a bundler-style
+  resolver, so Node cannot run the source without adding a loader.) Unit tier on Bun is fine. Sharp
+  edges to smoke for: `node:http`/`node:https` internals, `node:crypto` (missing key types/ciphers),
+  `node:async_hooks`/`AsyncLocalStorage` (partial — matters for Hono request-context middleware).
 
 ## LOW-priority (pointers, deliberately not full sections)
 

@@ -61,8 +61,18 @@ environmental and pre-existing, not a regression.
 ## Runtime — Bun local / Node prod (§29)
 
 Develop, install and test with **Bun** locally. Deploy the Hono API to the **Node** runtime on Vercel
-(stable/GA). Hono runs identically on both. Because dev (Bun) ≠ prod (Node), the CI integration/e2e
-tier runs on **Node** to catch runtime divergence; the unit tier on Bun is fine.
+(stable/GA). Hono runs identically on both.
+
+Dev (Bun) ≠ prod (Node), so something must exercise Node before users do — and here that is the
+**post-deploy smoke**, not a test tier (ruled 2026-09-23). Prod does not run this TypeScript: `bun
+build` squashes the API into one ESM file that Vercel executes on Node, so the smoke against the live
+URL is the only check that touches the artefact that ships. Running the e2e suite under Node would
+exercise source-on-Node, which exists nowhere — and cannot work as written anyway, since 155
+extensionless relative imports need a bundler-style resolver Node does not have.
+
+Every CI tier therefore runs on **Bun**, deliberately; the two e2e jobs carry no `setup-node` and a
+comment saying why. The `build` job keeps Node 22 because the jsdom unit tier genuinely needs it (see
+the Node 22 warning above).
 
 ## Secrets — Doppler (no `.env.local`)
 
