@@ -1,0 +1,61 @@
+# What NOT to upload to a deployment.
+#
+# Deliberately a SUPERSET of .gitignore rather than a delta. Vercel may use this
+# file INSTEAD of .gitignore, so anything left out here could start uploading;
+# repeating the ignored paths costs nothing and removes that dependency.
+#
+# Added 2026-09-23 after a production deploy failed with
+#   Error: File /vercel/path0/.agents/skills/writing-guidelines does not exist.
+# The agent-skill symlinks under .claude/skills point into .agents/, which was
+# excluded; the symlinks themselves were not, so they uploaded and then resolved
+# to nothing on the build machine. Chasing that asymmetry is the wrong fix:
+# agent tooling, tests, docs and eval harnesses are not part of a production
+# deployment and should never have been in the upload at all.
+
+# Agent tooling — skills, settings, worktrees, plans. Never part of a deploy.
+.agents/
+.claude/
+.superpowers/
+AGENTS.md
+CLAUDE.md
+CONVENTIONS.md
+.mcp.json
+skills-lock.json
+
+# Tests and their artefacts. The build needs none of them.
+e2e/
+test-results/
+playwright-report/
+blob-report/
+playwright-report.json
+playwright.config.ts
+vitest.evals.config.ts
+
+# The Python eval harness — 447 MB locally, almost all of it a virtualenv.
+evals/
+
+# Database migrations and seeds: applied by the CLI against Supabase, not by the
+# deployed function, which only ever connects to an already-migrated database.
+supabase/
+
+# Repo docs and local git plumbing.
+docs/
+.github/
+.githooks/
+README.md
+
+# Everything .gitignore already excludes, repeated for the reason at the top.
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+.env
+.env.*
+*.log
+.DS_Store
+.idea/
+.vscode/
+.vercel
+__pycache__/
+*.pyc
+.pytest_cache/
