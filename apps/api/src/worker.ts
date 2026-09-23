@@ -1,5 +1,6 @@
 import './config/load-env'
 import { auditInvoice, type AuditInvoiceOptions } from './audit/engine'
+import type { AuditResult } from './audit/types'
 import { resumeLangGraphEngine, type TraceSink } from './audit/engines/langgraph'
 import { needsHumanReview, varianceThreshold } from './audit/pause-rule'
 import { persistAuditRun } from './audit/runs'
@@ -55,8 +56,7 @@ async function processJob(job: AuditJob, opts: AuditInvoiceOptions = {}): Promis
   // invoice passed, the suspended run would be invisible with no way to resume it.
   const status = needsHumanReview(result.overall, result.variancePct) ? 'paused_review' : 'passed'
   await sql`update invoices set status = ${status} where id = ${job.invoiceId}`
-  if (status === 'paused_review')
-    await announcePause(job.invoiceId, result.variancePct, failingCheckLabels(result))
+  if (status === 'paused_review') await announcePause(job.invoiceId, result)
 }
 
 /**
@@ -73,12 +73,14 @@ async function processJob(job: AuditJob, opts: AuditInvoiceOptions = {}): Promis
  * correct: that run already notified when it paused, and re-announcing on every
  * approval would tell the reviewer about work they have just finished.
  */
-async function announcePause(
-  invoiceId: string,
-  variancePct: number,
-  failedChecks: string[],
-): Promise<void> {
+async function announcePause(invoiceId: string, result: AuditResult): Promise<void> {
   try {
+    // Inside the try, not in the caller's argument list. Every step of the
+    // notification path has to sit behind this catch, including the ones that
+    // look incapable of throwing — the whole point of the path being
+    // best-effort is that nothing in it can cost an audit that already
+    // succeeded, and "it cannot throw" is the reasoning this file rejects.
+    const failedChecks = failingCheckLabels(result)
     const [row] = await sql<{ invoice_number: string; vendor_name: string }[]>`
       select i.invoice_number, v.name as vendor_name
       from invoices i join vendors v on v.id = i.vendor_id
@@ -86,7 +88,7 @@ async function announcePause(
     await notifyInvoicePaused({
       invoiceNumber: row?.invoice_number ?? invoiceId,
       vendor: row?.vendor_name ?? 'unknown vendor',
-      variancePct,
+      variancePct: result.variancePct,
       failedChecks,
       url: invoiceReviewUrl(invoiceId),
     })
