@@ -117,12 +117,22 @@ describe('an audit whose notification throws', () => {
      * The assertion that distinguishes the two placements. Both leave the state
      * above identical; only this says whether the worker understood that the
      * audit succeeded and the announcement failed.
+     *
+     * SCOPED TO THIS INVOICE, and that is not tidiness. `runWorkerOnce` drains
+     * every job available, so a sibling spec's leftover job is processed by this
+     * call too — and a leftover whose invoice has since been deleted fails as a
+     * genuine poison message, logging "dropping job" about an invoice that is
+     * nothing to do with this test. Asserting over the whole console made this
+     * spec fail once in 25 runs for a reason the code was entirely right about.
      */
-    const logged = errorSpy.mock.calls.map((args: unknown[]) => String(args[0])).join('\n')
-    expect(logged, 'the notification failure should be reported as such').toContain(
+    const mine = errorSpy.mock.calls
+      .map((args: unknown[]) => String(args[0]))
+      .filter((line: string) => line.includes(invoiceId))
+      .join('\n')
+    expect(mine, 'the notification failure should be reported as such').toContain(
       'pause notification failed',
     )
-    expect(logged, 'a successful audit must never be reported as a dropped job').not.toContain(
+    expect(mine, 'a successful audit must never be reported as a dropped job').not.toContain(
       'dropping job',
     )
   })

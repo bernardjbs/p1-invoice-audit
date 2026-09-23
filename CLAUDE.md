@@ -32,6 +32,13 @@ Gate tiers (per `docs/development-workflow.md` in the build home): pre-push runs
 baselined, and the allowance can only shrink. The script prints the current count; do not trust a
 number written in prose here or anywhere else.
 
+**Adding any file under `apps/api/src/audit/` forces an eval-dataset rebuild.** The freshness gate
+watches that folder and cannot tell a presentation helper from a prompt change, so it refuses the
+build until the dataset is rebuilt and re-graded — deliberately blunt, because a gate clever enough
+to judge which files matter is a gate that will eventually judge wrong. The rebuild is cheap
+(content-addressed cache; 18 of 19 judge calls hit on 2026-09-23), but it is not free and it is not
+optional.
+
 **⚠️ Node 22 is required for ANY gate, test tier, push or build.**
 
 The repo now declares it (`.nvmrc` = `22`, `engines.node` = `>=22`) and the **pre-push hook enforces
