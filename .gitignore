@@ -58,3 +58,9 @@ evals/.cache/
 # The judge cache. Re-grading must not re-pay for the same judgement, but the
 # replies themselves are a local artefact, not source.
 evals/ragas/.cache/
+
+# Agent plan ledgers, briefs and review diffs. An inner .superpowers/sdd/.gitignore
+# already ignores that subtree, but only that subtree: anything written to
+# .superpowers/ directly was untracked AND unignored, one `git add -A` away from
+# a public commit. Ignore the whole root. (Added 2026-09-23, pre-publication audit.)
+.superpowers/
