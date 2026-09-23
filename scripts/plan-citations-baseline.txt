@@ -37,7 +37,6 @@ apps/web/src/features/invoices/search.ts	/** Typed search params for the invoice
 apps/web/src/features/invoices/upload-page.tsx	* Upload an invoice PDF + minimal fields (plan T11). On success we jump to the
 apps/web/src/features/review/api.ts	/** Review-queue server state + the approve/reject mutation (plan T12). */
 scripts/setup-prod-worker.ts	* Provision the prod audit worker (plan T14). On Vercel there is no long-running
-scripts/smoke.ts	* Post-deploy smoke (plan T14, criterion 8): prove the upload → audit → review
 supabase/migrations/20260830020404_create_audit_schema.sql	-- P1 invoice-audit schema (plan T2). All money is numeric(12,2), currency implicit
 supabase/migrations/20260830020404_create_audit_schema.sql	-- Private storage bucket for generated invoice PDFs (T4 writes into it).
 supabase/migrations/20260830020404_create_audit_schema.sql	-- The queue itself and the cron consumer are wired in T7 (see docs/pgmq-spike.md);
