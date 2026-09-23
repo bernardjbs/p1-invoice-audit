@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import postgres from 'postgres'
+import { poolerSafeOptions } from './client'
 
 /**
  * Synthetic AU/resources seed (plan T3, criterion 2). Deterministic — no
@@ -312,7 +313,7 @@ addInvoice({
 // --- Insert in FK order -----------------------------------------------------
 
 async function main(): Promise<void> {
-  const sql = postgres(DATABASE_URL, { max: 1 })
+  const sql = postgres(DATABASE_URL, { max: 1, ...poolerSafeOptions(DATABASE_URL) })
   try {
     await sql.begin(async (tx) => {
       // Idempotent: clear existing rows first (children before parents).

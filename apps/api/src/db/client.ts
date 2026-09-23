@@ -20,10 +20,18 @@ const DATABASE_URL =
  * (127.0.0.1) and keep postgres.js defaults, so nothing there changes. (T14 —
  * verified against the postgres.js README + Supabase pooler docs.)
  */
-const isPooler = DATABASE_URL.includes('pooler.supabase.com')
+/**
+ * Exported because the rule has to reach the admin SCRIPTS too, and it did not.
+ * The comment above has always claimed the seed was covered; the seed opened its
+ * own connection and never read any of this, so a prod seed would have hung on
+ * the first statement against the pooler. One home for the rule, used by every
+ * caller, rather than a claim in a docstring. (T14, 2026-09-23.)
+ */
+export function poolerSafeOptions(url: string): { prepare: false } | Record<string, never> {
+  return url.includes('pooler.supabase.com') ? { prepare: false } : {}
+}
+
 const options = process.env.VERCEL
   ? { prepare: false, idle_timeout: 20, max_lifetime: 60 * 30, max: 1 }
-  : isPooler
-    ? { prepare: false }
-    : {}
+  : poolerSafeOptions(DATABASE_URL)
 export const sql = postgres(DATABASE_URL, options)

@@ -2,6 +2,7 @@ import { resolve } from 'node:path'
 import { createClient } from '@supabase/supabase-js'
 import { chromium } from 'playwright'
 import postgres from 'postgres'
+import { poolerSafeOptions } from '../src/db/client'
 import { renderHtml, type InvoiceRow, type LineRow } from './invoice-html'
 
 // Load the repo-root .env.local (SUPABASE_URL / service-role key) — under
@@ -33,7 +34,7 @@ const BUCKET = 'invoices'
 
 async function main(): Promise<void> {
   if (!SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required to upload PDFs')
-  const sql = postgres(DATABASE_URL, { max: 1 })
+  const sql = postgres(DATABASE_URL, { max: 1, ...poolerSafeOptions(DATABASE_URL) })
   const storage = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { persistSession: false },
   }).storage.from(BUCKET)
