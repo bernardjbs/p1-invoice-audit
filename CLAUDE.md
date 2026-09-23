@@ -47,6 +47,28 @@ to judge which files matter is a gate that will eventually judge wrong. The rebu
 (content-addressed cache; 18 of 19 judge calls hit on 2026-09-23), but it is not free and it is not
 optional.
 
+The reply cache that makes the rebuild cheap is **local only**. CI restores no such cache (the
+only cached thing in the workflow is Python packages), so every paid run there marks all 20 rows
+afresh. Measured 2026-09-24: two runs of the same commit scored 0.635 and 0.734, which replayed
+judgements could not do.
+
+**Build on a branch and merge by pull request. Do not push straight to `main`.**
+
+Two reasons, and the second is the one that does not show up in a diff:
+
+1. **The paid half of the eval gate runs on `main` only.** Ten pushes to a branch cost nothing;
+   the judge marks once, at merge. Ten pushes to `main` pay ten times. The free checks (was the
+   right clause cited, was the verdict right, did retrieval find the deciding clause) run on every
+   push either way, so nothing is lost by waiting.
+2. **This repo is public, and the pull request history is part of what a reader sees.** A straight
+   line of commits to `main` says something different about how the work was done than a series of
+   reviewed changes does.
+
+Known limit, accepted rather than solved: the paid gate runs _after_ a merge, so it cannot block a
+bad one. It goes red once the code is already on `main`. Making it blocking means running it on
+every pull request push, which costs more than it saves. Revisit only if a regression actually
+slips through.
+
 **⚠️ Node 22 is required for ANY gate, test tier, push or build.**
 
 The repo now declares it (`.nvmrc` = `22`, `engines.node` = `>=22`) and the **pre-push hook enforces
