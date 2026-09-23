@@ -4,7 +4,7 @@
  * step failed (with the reason logged).
  *
  * Run against the deployed origin:
- *   SMOKE_URL=https://<app>.vercel.app bun run scripts/smoke.ts
+ *   SMOKE_URL=https://p1-invoice-audit.sinfat.com bun run scripts/smoke.ts
  *
  * This is also the ONLY place the shipped artefact is exercised on the runtime it
  * ships to. Everything else runs the TypeScript source under Bun; production runs

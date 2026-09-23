@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Invoice Audit">
+  <style>
+    .sheet { fill: #ffffff; stroke: #475569; }
+    .rule  { stroke: #94a3b8; }
+    .tick  { stroke: #16a34a; }
+    @media (prefers-color-scheme: dark) {
+      .sheet { fill: #1e293b; stroke: #cbd5e1; }
+      .rule  { stroke: #64748b; }
+      .tick  { stroke: #4ade80; }
+    }
+  </style>
+  <!-- An invoice with a tick: the document, and the check applied to it. -->
+  <path class="sheet" d="M7 3h13l5 5v21a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"
+        stroke-width="2" stroke-linejoin="round"/>
+  <path class="sheet" d="M20 3v5h5" fill="none" stroke-width="2" stroke-linejoin="round"/>
+  <g class="rule" stroke-width="2" stroke-linecap="round">
+    <path d="M10 13h8"/>
+    <path d="M10 17h6"/>
+  </g>
+  <path class="tick" d="M10 23l4 4 8-9" fill="none" stroke-width="3"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
