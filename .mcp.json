@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "p1-audit": {
+      "type": "stdio",
+      "command": "doppler",
+      "args": ["run", "-c", "dev", "--", "bun", "run", "apps/api/src/mcp/stdio.ts"],
+      "env": {}
+    }
+  }
+}

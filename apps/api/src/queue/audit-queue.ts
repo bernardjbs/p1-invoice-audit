@@ -16,11 +16,21 @@ export const QUEUE = 'audit_jobs'
  * required without draining the queue first.
  */
 export type AuditJob = { invoiceId: string; kind?: 'audit' | 'resume'; decision?: string }
-export type QueuedJob = { msgId: number; job: AuditJob; readCt: number }
+/**
+ * A pgmq message id is a bigint, and postgres.js returns bigints as strings so
+ * no precision is lost. These were typed `number` until an MCP tool became the
+ * first caller to actually USE a returned id and the mismatch surfaced; every
+ * earlier caller discarded it. The ids are only ever echoed back to Postgres
+ * (always with an explicit `::bigint` cast), never counted, so a string is the
+ * honest and sufficient type.
+ */
+export type MessageId = string
+
+export type QueuedJob = { msgId: MessageId; job: AuditJob; readCt: number }
 
 /** Enqueue an audit job for one invoice. Returns the pgmq message id. */
-export async function enqueueAudit(invoiceId: string): Promise<number> {
-  const [row] = await sql<{ send: number }[]>`
+export async function enqueueAudit(invoiceId: string): Promise<MessageId> {
+  const [row] = await sql<{ send: MessageId }[]>`
     select pgmq.send(${QUEUE}, ${sql.json({ invoiceId, kind: 'audit' })}) as send`
   return row!.send
 }
@@ -36,8 +46,8 @@ export async function enqueueAudit(invoiceId: string): Promise<number> {
  * behind it. Latency was measured and is not the argument: the work left after
  * the pause is one state read and a comparison.
  */
-export async function enqueueResume(invoiceId: string, decision: string): Promise<number> {
-  const [row] = await sql<{ send: number }[]>`
+export async function enqueueResume(invoiceId: string, decision: string): Promise<MessageId> {
+  const [row] = await sql<{ send: MessageId }[]>`
     select pgmq.send(${QUEUE}, ${sql.json({ invoiceId, kind: 'resume', decision })}) as send`
   return row!.send
 }
@@ -47,13 +57,13 @@ export async function enqueueResume(invoiceId: string, decision: string): Promis
  * crash re-delivers them. Caller archives each on success.
  */
 export async function readAuditJobs(qty = 10, vtSeconds = 30): Promise<QueuedJob[]> {
-  const rows = await sql<{ msg_id: number; message: AuditJob; read_ct: number }[]>`
+  const rows = await sql<{ msg_id: MessageId; message: AuditJob; read_ct: number }[]>`
     select msg_id, message, read_ct from pgmq.read(${QUEUE}, ${vtSeconds}, ${qty})`
   return rows.map((r) => ({ msgId: r.msg_id, job: r.message, readCt: r.read_ct }))
 }
 
 /** Archive a processed message (moves it out of the active queue). */
-export async function archiveJob(msgId: number): Promise<void> {
+export async function archiveJob(msgId: MessageId): Promise<void> {
   await sql`select pgmq.archive(${QUEUE}, ${msgId}::bigint)`
 }
 
