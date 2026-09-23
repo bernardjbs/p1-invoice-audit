@@ -232,6 +232,21 @@ jobs:
           bunx supabase db reset --local
           doppler run -p p1-invoice-audit -c ci -- bun run seed
 
+      # REPRODUCE THIS JOB LOCALLY BEFORE PUSHING. The `dev` config has every
+      # key; `ci` has a deliberately smaller set, and the difference is invisible
+      # until the job runs. Both of this job's first two failures were that gap —
+      # a missing browser for the seed, then missing LangSmith credentials for
+      # the trace spec, neither reproducible with `-c dev`. From apps/api, with
+      # the local stack already up:
+      #
+      #   eval "$(bunx supabase status -o env)"
+      #   doppler run -c ci -- env SUPABASE_URL="$API_URL" \
+      #     SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
+      #     bunx vitest run --config vitest.integration-ci.config.ts
+      #
+      # The two SUPABASE_ values are not in any Doppler config: the step above
+      # reads them off the started stack, because they belong to an ephemeral
+      # container rather than to a hosted project.
       - name: Run the integration tier (model-calling files excluded)
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
