@@ -229,6 +229,13 @@ async function main(): Promise<void> {
    */
   console.log('\nCheck Slack for the pause notification, and that its link opens the live app.')
   console.log('That is the one part of this run nothing here can prove for you.')
+  /**
+   * This run left a real invoice in production. Naming the exact command beats
+   * telling the reader to tidy up: the previous wording did the latter, and the
+   * invoices stayed until someone wrote the delete by hand.
+   */
+  console.log('\nThen remove the invoice this run created:')
+  console.log('  doppler run -c prd -- bun run apps/api/scripts/cleanup-smoke.ts')
 }
 
 main().catch((err) => fail('unexpected error', err))
