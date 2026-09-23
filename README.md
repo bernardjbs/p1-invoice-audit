@@ -10,6 +10,8 @@ requirements.
 
 **Live:** https://p1-invoice-audit.vercel.app
 
+<!-- deployed-engine: langgraph -->
+
 > **What is actually deployed:** all of it. The real LangGraph engine has run on the deployed URL
 > since 2026-09-23 — an uploaded invoice is read from its PDF by a vision model, checked four ways,
 > cited against the contract clause it breached, paused for a human and cleared on approval. The
@@ -162,7 +164,7 @@ and nothing else — which is the point of building the same app three times.
 
 ## Status
 
-Phase A and Phase B are both shipped and deployed. Phase B is 15 of 15 tasks: extraction with its
+Phase A and Phase B are both shipped and deployed. Phase B is complete: extraction with its
 eval gate, the deterministic checks, the retrieval seam, the contract corpus, the RAG agent, and
 injection containment are wired into one LangGraph state graph behind the seam, and that engine is
 what the live URL runs.
@@ -209,8 +211,8 @@ API with no clean boundary to expose. Every tool declares whether it reads or wr
 speaks over standard input and output rather than over a network, so there is no URL and the only
 caller is a process you launched yourself.
 
-Continuous integration runs five jobs — the gates, both browser suites, the quality gate and an
-integration tier — and all five pass. The integration tier is the newest and carries the two proofs
+Continuous integration runs the gates, both browser suites, the quality gate and an integration
+tier, and they pass. The integration tier is the newest and carries the two proofs
 nothing else covers: that a paused audit survives its worker being killed, and that a run records a
 real trace.
 

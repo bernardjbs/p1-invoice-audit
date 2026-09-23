@@ -187,6 +187,39 @@ async function main(): Promise<void> {
     fail('review did not clear paused_review', after.invoice)
   console.log(`✓ approved → status ${after.invoice.status}`)
 
+  /**
+   * The README is a claim about this deployment, and it is the one document a
+   * stranger reads first. It went stale at the exact moment the work succeeded:
+   * it said the deployed URL ran the mock for hours after this script had proved
+   * otherwise, and nothing anywhere would have said so.
+   *
+   * This is the only place that can catch it, because this is the only place that
+   * knows which engine is live. The check is a MARKER rather than a scan of the
+   * prose: a first version grepped for "mock" near deployment words and could
+   * never pass, because the README legitimately discusses the mock while saying
+   * the real engine is live. A check that only ever refuses gets worked around.
+   *
+   * So the README carries one machine-readable line, `deployed-engine: <name>`,
+   * and this asserts it against the engine actually observed above. Prose around
+   * it is free to say anything; the claim is the marker.
+   */
+  const readme = readFileSync(
+    resolve(dirname(fileURLToPath(import.meta.url)), '../README.md'),
+    'utf8',
+  )
+  const marker = /<!--\s*deployed-engine:\s*([a-z0-9_-]+)\s*-->/i.exec(readme)
+  if (!marker)
+    fail(
+      'the README carries no `<!-- deployed-engine: … -->` marker',
+      'add one next to the Live URL; this run observed the engine below',
+    )
+  if (marker[1] !== audit.engine)
+    fail(
+      `the README says the deployment runs '${marker[1]}', this run observed '${audit.engine}'`,
+      'one of them is wrong, and it is not the deployment',
+    )
+  console.log(`✓ README's deployed-engine marker agrees: ${marker[1]}`)
+
   console.log('\nSMOKE PASSED — the real engine audited, cited and paused on the live URL')
   /**
    * Criterion 8's live half cannot be asserted from out here: the notification
