@@ -69,11 +69,36 @@ async function main(): Promise<void> {
   if (list.status !== 200 || !Array.isArray(list.body)) fail('GET /api/invoices', list)
   console.log(`✓ list loads (${(list.body as unknown[]).length} invoices)`)
 
-  // 2. A vendor to attach the upload to.
+  /**
+   * 2. The vendor the fixture invoice actually belongs to, BY NAME.
+   *
+   * Not the first vendor in the list, which is the mistake this script shipped
+   * with and which the live run caught: the list is alphabetical, so `[0]` is
+   * Dodgy Diggers, who has no contract in the corpus. The contract-terms check
+   * then short-circuits to `pass` before retrieval is ever called, and the
+   * citation assertion below fails on an app that behaved perfectly correctly.
+   * The browser spec for the same criterion documents the identical trap.
+   *
+   * The name also has to MATCH the uploaded document: the fixture is Pilbara
+   * Pumps' invoice, billing a weekend call-out loading their MSA forbids without
+   * prior written approval. Attaching it to anyone else would have the engine
+   * read one vendor's invoice and retrieve another vendor's clauses.
+   */
+  const VENDOR_NAME = 'Pilbara Pumps Pty Ltd'
   const vendors = await getJson('/api/vendors')
   if (vendors.status !== 200 || !Array.isArray(vendors.body) || vendors.body.length === 0)
     fail('GET /api/vendors', vendors)
-  const vendorId = (vendors.body as { id: string }[])[0]!.id
+  const vendor = (vendors.body as { id: string; name: string }[]).find(
+    (v) => v.name === VENDOR_NAME,
+  )
+  if (!vendor)
+    fail(
+      `the seeded vendor '${VENDOR_NAME}' is not in the deployed database — the fixture invoice ` +
+        'belongs to them, and their MSA is the corpus the citation assertion needs',
+      (vendors.body as { name: string }[]).map((v) => v.name),
+    )
+  const vendorId = vendor.id
+  console.log(`✓ vendor: ${VENDOR_NAME}`)
 
   // 3. Upload — non-zero subtotal → math fails → will pause for review.
   const invoiceNumber = `SMOKE-${Date.now()}`
