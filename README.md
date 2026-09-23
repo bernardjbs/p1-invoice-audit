@@ -12,7 +12,7 @@ requirements.
 
 > **What is actually deployed:** the full application — database, synthetic AU corpus, generated
 > invoice PDFs, API, queue-driven worker, React frontend — with the audit engine **mocked** behind a
-> single seam. The real LangGraph engine is built and green locally (12 of 15 tasks) and replaces the
+> single seam. The real LangGraph engine is built and green locally (14 of 15 tasks) and replaces the
 > mock at the end of that phase. This README says which parts are live and which are local, because a
 > portfolio that overstates itself is worse than one that ships less.
 
@@ -158,7 +158,7 @@ and nothing else — which is the point of building the same app three times.
 
 ## Status
 
-Phase A shipped and deployed. Phase B (the real engine) is 12 of 15 tasks: extraction with its eval
+Phase A shipped and deployed. Phase B (the real engine) is 14 of 15 tasks: extraction with its eval
 gate, the deterministic checks, the retrieval seam, the contract corpus, the RAG agent, and
 injection containment are all built and green — and as of 2026-09-07 they are wired into one
 LangGraph state graph behind the seam, so `AUDIT_ENGINE=langgraph` runs a real audit end to end
@@ -198,8 +198,16 @@ _concerned_ the model and a clean invoice concerns it not at all, so it hedged. 
 its own instruction moved the measured score from 0.562 to 0.688 and turned the gate from failing to
 passing.
 
-A thin MCP server and the deploy are still ahead. **Continuous integration for the real-engine suite
-is written but has not yet run.**
+The audit engine is also published over MCP, the standard protocol AI clients use to discover and
+call tools. Three of them: list the invoices, read an invoice's latest audit, queue a new one. Each is
+a one-line wrapper around a function the app already had, and that is the point rather than a
+shortcut — if it had needed real work it would have meant the audit logic was tangled into the web
+API with no clean boundary to expose. Every tool declares whether it reads or writes, and the server
+speaks over standard input and output rather than over a network, so there is no URL and the only
+caller is a process you launched yourself.
+
+Continuous integration now runs the real-engine suite on every push, including the quality gate, and
+has passed. **The deploy is the one thing left**: the live URL above still runs the Phase A mock.
 
 ---
 
