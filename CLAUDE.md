@@ -32,6 +32,14 @@ Gate tiers (per `docs/development-workflow.md` in the build home): pre-push runs
 baselined, and the allowance can only shrink. The script prints the current count; do not trust a
 number written in prose here or anywhere else.
 
+**`README.md` carries `<!-- deployed-engine: <name> -->` and the post-deploy smoke asserts it.**
+Do not delete or hand-edit that marker: it is the README's claim about which engine is live, checked
+against the engine a real run observed. The README went stale for hours on exactly this claim on
+2026-09-23 with nothing to catch it. Prose around it may discuss any engine freely — the marker is
+the claim. Two other facts were deliberately removed rather than checked (the task count, whose plan
+lives outside this repo, and a CI job count): **a fact that moves and has no source here should not
+be asserted at all.**
+
 **Adding any file under `apps/api/src/audit/` forces an eval-dataset rebuild.** The freshness gate
 watches that folder and cannot tell a presentation helper from a prompt change, so it refuses the
 build until the dataset is rebuilt and re-graded — deliberately blunt, because a gate clever enough
