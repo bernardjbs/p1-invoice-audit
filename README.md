@@ -8,13 +8,17 @@ Built as the first of three implementations of the same application on different
 (LangGraph.js → Mastra → Laravel AI), so the engines can be compared honestly on identical
 requirements.
 
-**Live:** https://p1-invoice-audit-bernardjbs-yahoocoms-projects.vercel.app
+**Live:** https://p1-invoice-audit.vercel.app
 
-> **What is actually deployed:** the full application — database, synthetic AU corpus, generated
-> invoice PDFs, API, queue-driven worker, React frontend — with the audit engine **mocked** behind a
-> single seam. The real LangGraph engine is built and green locally (14 of 15 tasks) and replaces the
-> mock at the end of that phase. This README says which parts are live and which are local, because a
-> portfolio that overstates itself is worse than one that ships less.
+> **What is actually deployed:** all of it. The real LangGraph engine has run on the deployed URL
+> since 2026-09-23 — an uploaded invoice is read from its PDF by a vision model, checked four ways,
+> cited against the contract clause it breached, paused for a human and cleared on approval. The
+> post-deploy check asserts the engine **by name**, so it fails if the deployment is ever quietly
+> serving the mock again. That assertion is not decoration: it was written because the first deploy
+> attempt would have done exactly that, and every other probe passed.
+>
+> This README says which parts are live and which are local, because a portfolio that overstates
+> itself is worse than one that ships less.
 
 ---
 
@@ -158,11 +162,10 @@ and nothing else — which is the point of building the same app three times.
 
 ## Status
 
-Phase A shipped and deployed. Phase B (the real engine) is 14 of 15 tasks: extraction with its eval
-gate, the deterministic checks, the retrieval seam, the contract corpus, the RAG agent, and
-injection containment are all built and green — and as of 2026-09-07 they are wired into one
-LangGraph state graph behind the seam, so `AUDIT_ENGINE=langgraph` runs a real audit end to end
-locally.
+Phase A and Phase B are both shipped and deployed. Phase B is 15 of 15 tasks: extraction with its
+eval gate, the deterministic checks, the retrieval seam, the contract corpus, the RAG agent, and
+injection containment are wired into one LangGraph state graph behind the seam, and that engine is
+what the live URL runs.
 
 Since then the real engine has passed the Phase A acceptance suite **unchanged** — the seam's whole
 point, proved by not editing a test to make it green — and the audit has become durable: it suspends
@@ -206,8 +209,14 @@ API with no clean boundary to expose. Every tool declares whether it reads or wr
 speaks over standard input and output rather than over a network, so there is no URL and the only
 caller is a process you launched yourself.
 
-Continuous integration now runs the real-engine suite on every push, including the quality gate, and
-has passed. **The deploy is the one thing left**: the live URL above still runs the Phase A mock.
+Continuous integration runs five jobs — the gates, both browser suites, the quality gate and an
+integration tier — and all five pass. The integration tier is the newest and carries the two proofs
+nothing else covers: that a paused audit survives its worker being killed, and that a run records a
+real trace.
+
+**The engine is live.** The deployed URL runs LangGraph, and a post-deploy check proves it by
+asserting the engine by name, the clause citation, the recorded trace and the approval clearing the
+invoice.
 
 ---
 
