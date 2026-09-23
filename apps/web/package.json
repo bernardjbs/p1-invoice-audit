@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "tsc -p tsconfig.app.json && vite build",
     "lint": "eslint .",
-    "typecheck": "tsc -p tsconfig.app.json",
+    "typecheck": "tsc -p tsconfig.app.json && tsc -p tsconfig.node.json",
     "test": "vitest run"
   },
   "dependencies": {
