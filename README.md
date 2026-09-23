@@ -146,8 +146,9 @@ doppler run -c dev -- bun evals/extraction/run.ts
 ```
 
 Three tiers: the fast tier on every push, the full tier on CI, a smoke against the live URL after
-deploy. CI currently runs lint, typecheck, unit and build only — it has no database yet, so the
-integration and live tiers are local.
+deploy. CI runs the fast tier, the build and the mock browser suite on every push, and on `main`
+adds the real-engine browser suite, the integration tier against a real database, and the paid eval
+grading.
 
 ## Repository
 
