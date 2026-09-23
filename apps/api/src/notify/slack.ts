@@ -22,8 +22,13 @@ import { z } from 'zod'
  * read their non-secret config the same way.)
  */
 
-/** Where the reviewer lands from the Slack message; not a secret, so no Doppler key. */
-const DEFAULT_APP_BASE_URL = 'http://localhost:5173'
+/**
+ * Where the reviewer lands from the Slack message. `APP_URL` is the SAME key the
+ * prod worker setup reads for the deployed origin — deliberately one name for one
+ * value, rather than a second key holding a copy that can drift (ruled 2026-09-23).
+ * Not a secret; unset locally, where the default below is correct.
+ */
+const DEFAULT_APP_URL = 'http://localhost:5173'
 
 const WebhookUrlSchema = z.url()
 
@@ -50,7 +55,7 @@ export type NotifyOutcome =
 export function invoiceReviewUrl(invoiceId: string): string {
   // `||`, not `??`: an env var set to the empty string means "unset" here, which
   // is what a platform that always defines its variables actually gives you.
-  const base = process.env.APP_BASE_URL || DEFAULT_APP_BASE_URL
+  const base = process.env.APP_URL || DEFAULT_APP_URL
   return `${base.replace(/\/+$/, '')}/invoices/${invoiceId}`
 }
 

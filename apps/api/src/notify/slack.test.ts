@@ -116,12 +116,12 @@ describe('the Slack pause notification', () => {
 
 describe('the reviewer deep link', () => {
   it('points at the invoice under the configured app base URL', () => {
-    vi.stubEnv('APP_BASE_URL', 'https://audit.example/')
+    vi.stubEnv('APP_URL', 'https://audit.example/')
     expect(invoiceReviewUrl('abc-123')).toBe('https://audit.example/invoices/abc-123')
   })
 
   it('falls back to the local dev origin when unset', () => {
-    vi.stubEnv('APP_BASE_URL', '')
+    vi.stubEnv('APP_URL', '')
     expect(invoiceReviewUrl('abc-123')).toBe('http://localhost:5173/invoices/abc-123')
   })
 })
