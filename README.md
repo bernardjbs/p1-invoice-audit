@@ -8,7 +8,7 @@ Built as the first of three implementations of the same application on different
 (LangGraph.js → Mastra → Laravel AI), so the engines can be compared honestly on identical
 requirements.
 
-**Live:** https://p1-invoice-audit.vercel.app
+**Live:** https://p1-invoice-audit.sinfat.com
 
 <!-- deployed-engine: langgraph -->
 
