@@ -4,6 +4,7 @@ import { resumeLangGraphEngine, type TraceSink } from './audit/engines/langgraph
 import { needsHumanReview, varianceThreshold } from './audit/pause-rule'
 import { persistAuditRun } from './audit/runs'
 import { sql } from './db/client'
+import { failingCheckLabels } from './audit/failing-checks'
 import { invoiceReviewUrl, notifyInvoicePaused } from './notify/slack'
 import { archiveJob, readAuditJobs, type AuditJob } from './queue/audit-queue'
 
@@ -54,7 +55,8 @@ async function processJob(job: AuditJob, opts: AuditInvoiceOptions = {}): Promis
   // invoice passed, the suspended run would be invisible with no way to resume it.
   const status = needsHumanReview(result.overall, result.variancePct) ? 'paused_review' : 'passed'
   await sql`update invoices set status = ${status} where id = ${job.invoiceId}`
-  if (status === 'paused_review') await announcePause(job.invoiceId, result.variancePct)
+  if (status === 'paused_review')
+    await announcePause(job.invoiceId, result.variancePct, failingCheckLabels(result))
 }
 
 /**
@@ -71,7 +73,11 @@ async function processJob(job: AuditJob, opts: AuditInvoiceOptions = {}): Promis
  * correct: that run already notified when it paused, and re-announcing on every
  * approval would tell the reviewer about work they have just finished.
  */
-async function announcePause(invoiceId: string, variancePct: number): Promise<void> {
+async function announcePause(
+  invoiceId: string,
+  variancePct: number,
+  failedChecks: string[],
+): Promise<void> {
   try {
     const [row] = await sql<{ invoice_number: string; vendor_name: string }[]>`
       select i.invoice_number, v.name as vendor_name
@@ -81,6 +87,7 @@ async function announcePause(invoiceId: string, variancePct: number): Promise<vo
       invoiceNumber: row?.invoice_number ?? invoiceId,
       vendor: row?.vendor_name ?? 'unknown vendor',
       variancePct,
+      failedChecks,
       url: invoiceReviewUrl(invoiceId),
     })
   } catch (err) {

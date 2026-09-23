@@ -39,6 +39,12 @@ export type InvoicePausedNotification = {
   vendor: string
   /** Price variance as a FRACTION (0.12 = 12%), matching `AuditResult.variancePct`. */
   variancePct: number
+  /**
+   * Human-readable names of the checks that did not pass, already rendered by
+   * the audit seam. Plain strings on purpose: this file may not name check
+   * types (`scripts/seam-gate.sh`), and does not need to.
+   */
+  failedChecks: string[]
   /** Deep link to the invoice awaiting review. */
   url: string
 }
@@ -69,11 +75,22 @@ function formatVariance(variancePct: number): string {
  * without a fetch mock, and so the message stays one reviewable string.
  */
 export function invoicePausedMessage(notification: InvoicePausedNotification): { text: string } {
-  const { invoiceNumber, vendor, variancePct, url } = notification
+  const { invoiceNumber, vendor, variancePct, url, failedChecks } = notification
+  /**
+   * Lead with WHY it paused, not with the variance. Leading with the variance
+   * made a clause breach read as "price variance 0.0%", which tells a reviewer
+   * nothing is wrong — the invoice can be arithmetically perfect and billed at
+   * the contracted rate and still breach the contract.
+   *
+   * The variance is still shown, because it is the number a reviewer acts on
+   * when price IS the problem; it just no longer speaks for the whole audit.
+   * An empty list keeps the old wording rather than printing "failed: ".
+   */
+  const reason = failedChecks.length ? `${failedChecks.join(', ')} failed` : 'flagged for review'
   return {
     text:
       `:pause_button: Invoice *${invoiceNumber}* (${vendor}) is paused for review — ` +
-      `price variance ${formatVariance(variancePct)}.\n${url}`,
+      `${reason} (price variance ${formatVariance(variancePct)}).\n${url}`,
   }
 }
 

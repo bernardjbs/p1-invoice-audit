@@ -16,6 +16,7 @@ const paused = {
   invoiceNumber: 'INV-2026-0042',
   vendor: 'Pilbara Fasteners Pty Ltd',
   variancePct: 0.123,
+  failedChecks: ['price vs contract'],
   url: 'https://audit.example/invoices/abc-123',
 }
 
@@ -129,5 +130,46 @@ describe('the reviewer deep link', () => {
 describe('the pause message', () => {
   it('names the vendor so a reviewer can triage without opening the app', () => {
     expect(invoicePausedMessage(paused).text).toContain('Pilbara Fasteners Pty Ltd')
+  })
+
+  it('leads with what failed, not with the variance', () => {
+    const text = invoicePausedMessage(paused).text
+    expect(text).toContain('price vs contract failed')
+    expect(text.indexOf('failed')).toBeLessThan(text.indexOf('price variance'))
+  })
+
+  /**
+   * The case that prompted this: a clause breach on an invoice that is
+   * arithmetically perfect and billed at the contracted rate. Leading with the
+   * variance told the reviewer "price variance 0.0%", which reads as nothing
+   * being wrong. Observed on the first live pause, 2026-09-23.
+   */
+  it('says a contract breach is a contract breach, at zero variance', () => {
+    const text = invoicePausedMessage({
+      ...paused,
+      variancePct: 0,
+      failedChecks: ['contract terms'],
+    }).text
+    expect(text).toContain('contract terms failed')
+    expect(text).toContain('0.0%')
+  })
+
+  it('names every failing check, not just the first', () => {
+    const text = invoicePausedMessage({
+      ...paused,
+      failedChecks: ['arithmetic', 'PO match'],
+    }).text
+    expect(text).toContain('arithmetic, PO match failed')
+  })
+
+  /**
+   * A pause with nothing failing is reachable: the variance rule can pause a run
+   * whose four checks all passed. "failed: " with an empty list would be worse
+   * than the old wording, so it falls back to a plain statement.
+   */
+  it('falls back to a plain phrase when no individual check failed', () => {
+    const text = invoicePausedMessage({ ...paused, failedChecks: [] }).text
+    expect(text).toContain('flagged for review')
+    expect(text).not.toContain('failed')
   })
 })
