@@ -212,6 +212,13 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
+      # Needed by the SEED, not by the tests. `bun run seed` renders each invoice
+      # PDF by launching Chromium, so a job that seeds needs a browser even when
+      # nothing in it drives one. Dropped from this job's first version by
+      # reasoning about what the tests need, and it failed on the very first CI
+      # run with "Executable doesn't exist".
+      - run: bunx playwright install --with-deps chromium
+
       - name: Start the local Supabase stack
         run: bash .github/scripts/start-supabase.sh
 
