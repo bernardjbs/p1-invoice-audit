@@ -46,5 +46,8 @@ export default defineConfig({
   test: {
     ...base.test,
     exclude: [...configDefaults.exclude, ...CALLS_A_PAID_MODEL],
+    // Refuse an incomplete environment with a named cause, rather than letting
+    // it surface as three specs returning 500. See the setup file.
+    setupFiles: ['./vitest.integration-ci.setup.ts'],
   },
 })
