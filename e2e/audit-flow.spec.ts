@@ -17,11 +17,11 @@ test('upload → audit runs via queue → four check cards render @swap', async 
   await page.getByLabel('Invoice number').fill(number)
   await page.getByRole('combobox').click()
   await page.getByRole('option').first().click()
-  await page.getByLabel('Subtotal (AUD)', { exact: true }).fill('1000')
-  await page.getByLabel('GST (AUD)', { exact: true }).fill('100')
-  await page.getByLabel('Total (AUD)', { exact: true }).fill('1100')
-  await page.getByLabel('Invoice PDF').setInputFiles(PDF)
-  await page.getByRole('button', { name: /upload/i }).click()
+  await page.getByLabel('Subtotal', { exact: true }).fill('1000')
+  await page.getByLabel('GST', { exact: true }).fill('100')
+  await page.getByLabel('Total', { exact: true }).fill('1100')
+  await page.getByLabel('The invoice itself (PDF)').setInputFiles(PDF)
+  await page.getByRole('button', { name: 'Send for audit' }).click()
 
   // Redirected to the detail view; the page polls while auditing, so the four
   // check cards appear once the worker persists the run.
