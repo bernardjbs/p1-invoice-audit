@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { chromium } from 'playwright'
 import { renderHtml, type InvoiceRow, type LineRow } from './invoice-html'
+import { SAMPLE_PREFIX } from '../src/invoices/sample-cleanup'
 
 /**
  * The invoices a visitor can download, fill nothing in, and upload.
@@ -59,6 +60,12 @@ const VENDOR = { vendor_name: 'Pilbara Pumps Pty Ltd', vendor_abn: '51000000680'
 
 type Sample = {
   file: string
+  /**
+   * The check this invoice is built to trip, named exactly as the results page
+   * names it. The upload page leads each row with it, so a visitor learns the
+   * vocabulary before they upload rather than after.
+   */
+  check: string
   /** Shown on the upload page as the name of the download. */
   title: string
   /** One sentence: what a reader should watch for in the result. */
@@ -80,11 +87,12 @@ type Sample = {
  */
 const ARITHMETIC: Sample = {
   file: 'arithmetic-mismatch.pdf',
+  check: 'Arithmetic',
   title: 'The sums do not add up',
   proves: 'The arithmetic check fails: the printed total is $275.00 more than subtotal plus GST.',
   invoice: {
     id: 'sample-arithmetic',
-    invoice_number: 'INV-DEMO-0001',
+    invoice_number: `${SAMPLE_PREFIX}0001`,
     invoice_date: '2026-03-02',
     due_date: '2026-04-01',
     subtotal_aud: 5500,
@@ -122,12 +130,13 @@ const ARITHMETIC: Sample = {
  */
 const OVERPRICED: Sample = {
   file: 'overpriced-line.pdf',
+  check: 'Price vs contract',
   title: 'A line billed above the contracted rate',
   proves:
     'The rate check flags: the pump is contracted at $5,000.00 and billed at $5,750.00, 15% over.',
   invoice: {
     id: 'sample-overpriced',
-    invoice_number: 'INV-DEMO-0002',
+    invoice_number: `${SAMPLE_PREFIX}0002`,
     invoice_date: '2026-03-04',
     due_date: '2026-04-03',
     subtotal_aud: 6230,
@@ -169,12 +178,13 @@ const OVERPRICED: Sample = {
  */
 const CLAUSE: Sample = {
   file: 'contract-clause-breach.pdf',
+  check: 'Contract / vendor',
   title: 'A charge the contract forbids',
   proves:
     'The contract check fails and cites the clause: a weekend call-out fee, which the agreement forbids without prior written approval.',
   invoice: {
     id: 'sample-clause',
-    invoice_number: 'INV-DEMO-0003',
+    invoice_number: `${SAMPLE_PREFIX}0003`,
     invoice_date: '2026-03-07',
     due_date: '2026-04-06',
     subtotal_aud: 5850,
@@ -231,6 +241,7 @@ async function main(): Promise<void> {
 
   const manifest = SAMPLES.map((s) => ({
     file: s.file,
+    check: s.check,
     title: s.title,
     proves: s.proves,
     invoiceNumber: s.invoice.invoice_number,

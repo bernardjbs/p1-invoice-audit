@@ -42,6 +42,22 @@ export async function downloadInvoicePdf(path: string): Promise<Buffer> {
   return Buffer.from(await data.arrayBuffer())
 }
 
+/**
+ * Remove stored PDFs, returning how many went. Used by the scheduled sample
+ * cleanup, which has already deleted the rows: it reports a storage failure
+ * rather than throwing, because re-running would find no rows and remove
+ * nothing, leaving the litter behind for good.
+ */
+export async function deleteInvoicePdfs(paths: string[]): Promise<number> {
+  if (!paths.length) return 0
+  const { error } = await storageClient().remove(paths)
+  if (error) {
+    console.error(`[storage] removing ${paths.length} pdf(s) failed: ${error.message}`)
+    return 0
+  }
+  return paths.length
+}
+
 /** A short-lived signed URL for a stored PDF, or null if the path is unset. */
 export async function signedPdfUrl(path: string | null, expiresIn = 3600): Promise<string | null> {
   if (!path) return null

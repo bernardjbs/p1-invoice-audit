@@ -36,3 +36,31 @@ describe('POST /api/internal/drain (auth guard)', () => {
     expect(res.status).toBe(403)
   })
 })
+
+// The same guard on the scheduled sample cleanup. Worth its own tests rather
+// than trusting that it was copied correctly: this one DELETES, unattended, on
+// a schedule, so an open door here is worse than an open drain.
+describe('POST /api/internal/cleanup-samples (auth guard)', () => {
+  const original = process.env.WORKER_SECRET
+  beforeEach(() => {
+    delete process.env.WORKER_SECRET
+  })
+  afterEach(() => {
+    if (original === undefined) delete process.env.WORKER_SECRET
+    else process.env.WORKER_SECRET = original
+  })
+
+  it('503 when WORKER_SECRET is unset (fail closed, never an open delete)', async () => {
+    const res = await app.request('/api/internal/cleanup-samples', { method: 'POST' })
+    expect(res.status).toBe(503)
+  })
+
+  it('403 when the secret header is missing or wrong', async () => {
+    process.env.WORKER_SECRET = 'right-secret'
+    const res = await app.request('/api/internal/cleanup-samples', {
+      method: 'POST',
+      headers: { 'x-worker-secret': 'wrong-secret' },
+    })
+    expect(res.status).toBe(403)
+  })
+})

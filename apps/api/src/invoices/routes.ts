@@ -9,6 +9,7 @@ import {
   setInvoiceStatus,
   DuplicateInvoiceNumberError,
 } from './service'
+import { listSampleHolds, SAMPLE_TTL_MINUTES } from './sample-cleanup'
 
 /**
  * Invoice HTTP routes (plan T6): list (with status filter), detail, and
@@ -46,6 +47,16 @@ invoicesRoutes.get('/invoices/:id', async (c) => {
   if (!detail) return c.json({ error: { message: 'invoice not found', code: 'not_found' } }, 404)
   return c.json(detail, 200)
 })
+
+/**
+ * Which sample invoices are currently taken, so the upload page can grey a
+ * sample out with a countdown instead of letting a visitor press it and meet a
+ * 409 that somebody else caused. Public and read-only: it returns invoice
+ * numbers the page already prints.
+ */
+invoicesRoutes.get('/samples/holds', async (c) =>
+  c.json({ ttlMinutes: SAMPLE_TTL_MINUTES, holds: await listSampleHolds() }, 200),
+)
 
 invoicesRoutes.post('/invoices', async (c) => {
   const body = await c.req.parseBody()
