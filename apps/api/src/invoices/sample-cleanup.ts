@@ -21,8 +21,16 @@ export const SAMPLE_PREFIX = 'INV-DEMO-'
 /**
  * How long a sample is left alone after it is uploaded. Also what the upload
  * page counts down to, so the two cannot disagree: one value, read by both.
+ *
+ * Fifteen minutes, because this number does two jobs that pull against each
+ * other. Too long and the next visitor finds the sample locked and the button
+ * dead; too short and the person who uploaded it loses their own result while
+ * they are still reading it. A visitor's whole session is about five minutes:
+ * upload, watch the audit run, read the findings. Fifteen covers that several
+ * times over and still frees the sample quickly. Below about ten, people start
+ * losing their own results.
  */
-export const SAMPLE_TTL_MINUTES = Number(process.env.SAMPLE_TTL_MINUTES ?? 120)
+export const SAMPLE_TTL_MINUTES = Number(process.env.SAMPLE_TTL_MINUTES ?? 15)
 
 /**
  * Starting with the prefix is not enough — a number that merely contains it

@@ -14,18 +14,29 @@ import { sql } from '../apps/api/src/db/client'
  * trailing slash), WORKER_SECRET (same value set in Vercel env).
  *
  * TWO NUMBERS, AND THEY ARE NOT THE SAME NUMBER. This script sets how often the
- * sweep RUNS (CLEANUP_SCHEDULE). How long a sample is spared is set by
- * SAMPLE_TTL_MINUTES in the API's own env, because the upload page counts down
- * to it too and one value must serve both. The worst a visitor waits is the two
- * added together: a sample uploaded a moment after a sweep waits out its life,
- * then waits again for the next sweep to notice.
+ * sweep RUNS (CLEANUP_SCHEDULE, default every five minutes). How long a sample
+ * is spared is set by SAMPLE_TTL_MINUTES in the API's own env (default fifteen),
+ * because the upload page counts down to it too and one value must serve both.
+ * The worst a visitor waits is the two added together — twenty minutes at these
+ * defaults: a sample uploaded a moment after a sweep waits out its life, then
+ * waits again for the next sweep to notice. Raise either and check that sum
+ * before shipping it.
  *
  * Idempotent — safe to re-run; it unschedules any prior job of the same name.
  */
 const APP_URL = process.env.APP_URL
 const WORKER_SECRET = process.env.WORKER_SECRET
-/** pg_cron syntax. Default: every two hours, on the hour. */
-const SCHEDULE = process.env.CLEANUP_SCHEDULE ?? '0 */2 * * *'
+/**
+ * pg_cron syntax. Default: every five minutes.
+ *
+ * Frequent on purpose. A sample is freed only by a sweep that runs AFTER it has
+ * aged out, so the wait a visitor actually sees is the life plus the gap between
+ * sweeps. At five minutes against a fifteen-minute life the worst case is twenty
+ * minutes; at two-hourly it would have been nearly four hours, which is a dead
+ * button for anyone arriving in between. The cost is 288 calls a day to a
+ * function that usually finds nothing to delete.
+ */
+const SCHEDULE = process.env.CLEANUP_SCHEDULE ?? '*/5 * * * *'
 
 if (!APP_URL || !WORKER_SECRET) {
   console.error('setup-prod-cleanup: APP_URL and WORKER_SECRET must be set')

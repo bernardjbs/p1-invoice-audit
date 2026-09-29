@@ -16,6 +16,11 @@ sample cleanup and neither runnable by an agent:
 1. Apply the migration adding `invoices.created_at` to the production database.
 2. `doppler run -c prd -- bun run scripts/setup-prod-cleanup.ts` to schedule the sweep.
 
+   Defaults: a sample is spared for 15 minutes, and the sweep runs every 5, so the longest anyone
+   waits for a locked sample is 20. Those are two different settings and the wait is their SUM, so
+   raising either without doing that sum is how a visitor ends up looking at a dead button for
+   hours. Set `SAMPLE_TTL_MINUTES` in the deployed env; the schedule is this script's argument.
+
 Until the second runs, samples accumulate in production and every one of them stays marked as in
 use for ever, because nothing clears them. Item 11 was moved out of Batch A into Batch B: removing the Flagged status means
 a database migration, and doing only the visible half would leave the app able to crash on a row
@@ -235,7 +240,27 @@ fixed**, because no upload can pass the purchase-order check; the adversarial ca
 
 ## 10. The same invoice shows two different totals, and nothing checks the one you typed
 
-**Needs fixing, needs scoping.** The most serious item here.
+**Needs fixing, I know how. RULED 2026-09-24 — do not reopen the fork.** The most serious item here.
+
+**The ruling: the declared total becomes a FIFTH check.** Not folded into the arithmetic check, and
+not fixed by dropping the amount fields from the form.
+
+Why, in one line: _"the supplier declared $1,100, the document says $5,328"_ is a finding a human
+acts on differently from _"this document does not add up internally"_. One is a possible lie, the
+other a probable mistake. Folding them into one check destroys that distinction; dropping the fields
+removes a real audit signal rather than the contradiction.
+
+Costs accepted at the time, all of which are why this sits in Batch B rather than anywhere cheaper:
+
+- a migration, because the database constraint allows four check types;
+- the smoke and two browser specs, which assert exactly four checks;
+- the README's framing;
+- one eval rebuild;
+- **all three engines, not one.** Mock and stub return four as well, so wiring only the live engine
+  recreates the very divergence bug item 4 exists to close.
+
+Landed 2026-09-29 as a stopgap, not a fix: the form's three amount boxes are now captioned as what
+the SENDER states, so a reader knows whose numbers they are. The hole is untouched.
 
 The upload form asks for the subtotal, GST and total. Those numbers are stored and are what the
 detail page prints in its header. Every check, meanwhile, reads its own values off the PDF. Nothing
@@ -256,13 +281,11 @@ compares the PDF against itself. For a tool whose entire purpose is catching inv
 up, an unverified declared total is a conspicuous hole, and it is the first thing a sceptical
 interviewer would poke at.
 
-Scoping needed on which way round it goes. Comparing the typed total against the extracted one is a
-genuine fifth check and arguably the most valuable in the product, since it catches a whole class of
-fraud the other four cannot: a correct-looking document attached to a wrong claim. Alternatively the
-form stops asking for amounts at all and takes them from the document, which removes the
-contradiction by removing the input. The first is more product; the second is less surface.
+Comparing the typed total against the extracted one catches a class of fraud the other four checks
+cannot: a correct-looking document attached to a wrong claim.
 
-Whichever is chosen, the header must say where its number came from.
+Still to do when this is built: **the header must say where its number came from.** That was part of
+the ruling and is not covered by the form caption, which labels the input rather than the display.
 
 ## 11. The filter offers a status nothing can ever have
 
