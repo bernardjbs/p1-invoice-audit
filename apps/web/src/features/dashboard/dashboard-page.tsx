@@ -9,6 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useInvoices } from '@/features/invoices/api'
+import { InvoiceLink } from '@/features/invoices/invoice-link'
 import { countByStatus, STATUS_META } from '@/features/invoices/status'
 import { StatusBadge } from '@/features/invoices/status-badge'
 import { formatAud, formatDate } from '@/lib/format'
@@ -52,7 +53,15 @@ export function DashboardPage() {
       </div>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-medium">Recent invoices</h2>
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-lg font-medium">Recent invoices</h2>
+          <Link
+            to="/invoices"
+            className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4"
+          >
+            View all
+          </Link>
+        </div>
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -68,9 +77,7 @@ export function DashboardPage() {
               {recent.map((inv) => (
                 <TableRow key={inv.id}>
                   <TableCell className="font-medium">
-                    <Link to="/invoices/$id" params={{ id: inv.id }} className="hover:underline">
-                      {inv.invoiceNumber}
-                    </Link>
+                    <InvoiceLink id={inv.id} invoiceNumber={inv.invoiceNumber} />
                   </TableCell>
                   <TableCell>{inv.vendorName}</TableCell>
                   <TableCell>{formatDate(inv.invoiceDate)}</TableCell>

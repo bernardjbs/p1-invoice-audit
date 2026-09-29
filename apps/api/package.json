@@ -15,7 +15,8 @@
     "e2e:fixture": "bun run scripts/generate-e2e-fixture.ts",
     "worker": "bun run src/worker.ts",
     "build": "tsc --noEmit",
-    "invoices:truth": "bun run scripts/generate-invoice-truth.ts"
+    "invoices:truth": "bun run scripts/generate-invoice-truth.ts",
+    "samples": "bun run scripts/generate-sample-invoices.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",

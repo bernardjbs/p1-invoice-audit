@@ -67,11 +67,11 @@ test.describe('contract-terms citation (criterion 3)', () => {
     // By name, not `.first()`: the first option is alphabetically Dodgy Diggers,
     // which the seed gives no contract, and the check would short-circuit.
     await page.getByRole('option', { name: 'Pilbara Pumps Pty Ltd' }).click()
-    await page.getByLabel('Subtotal (AUD)', { exact: true }).fill('5850')
-    await page.getByLabel('GST (AUD)', { exact: true }).fill('585')
-    await page.getByLabel('Total (AUD)', { exact: true }).fill('6435')
-    await page.getByLabel('Invoice PDF').setInputFiles(PDF)
-    await page.getByRole('button', { name: /upload/i }).click()
+    await page.getByLabel('Subtotal', { exact: true }).fill('5850')
+    await page.getByLabel('GST', { exact: true }).fill('585')
+    await page.getByLabel('Total', { exact: true }).fill('6435')
+    await page.getByLabel('The invoice itself (PDF)').setInputFiles(PDF)
+    await page.getByRole('button', { name: 'Send for audit' }).click()
 
     await expect(page.getByRole('heading', { name: number })).toBeVisible()
     await expect(page.locator('[data-testid^="check-"]')).toHaveCount(4, { timeout: 20_000 })

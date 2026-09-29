@@ -1,0 +1,35 @@
+[
+  {
+    "file": "arithmetic-mismatch.pdf",
+    "check": "Arithmetic",
+    "title": "The sums do not add up",
+    "proves": "The arithmetic check fails: the printed total is $275.00 more than subtotal plus GST.",
+    "invoiceNumber": "INV-DEMO-0001",
+    "vendorName": "Pilbara Pumps Pty Ltd",
+    "subtotalAud": 5500,
+    "gstAud": 550,
+    "totalAud": 6325
+  },
+  {
+    "file": "overpriced-line.pdf",
+    "check": "Price vs contract",
+    "title": "A line billed above the contracted rate",
+    "proves": "The rate check flags: the pump is contracted at $5,000.00 and billed at $5,750.00, 15% over.",
+    "invoiceNumber": "INV-DEMO-0002",
+    "vendorName": "Pilbara Pumps Pty Ltd",
+    "subtotalAud": 6230,
+    "gstAud": 623,
+    "totalAud": 6853
+  },
+  {
+    "file": "contract-clause-breach.pdf",
+    "check": "Contract / vendor",
+    "title": "A charge the contract forbids",
+    "proves": "The contract check fails and cites the clause: a weekend call-out fee, which the agreement forbids without prior written approval.",
+    "invoiceNumber": "INV-DEMO-0003",
+    "vendorName": "Pilbara Pumps Pty Ltd",
+    "subtotalAud": 5850,
+    "gstAud": 585,
+    "totalAud": 6435
+  }
+]

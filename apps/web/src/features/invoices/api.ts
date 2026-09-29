@@ -11,6 +11,7 @@ export const invoiceKeys = {
   list: (status?: InvoiceStatus) => [...invoiceKeys.all, 'list', status ?? 'all'] as const,
   detail: (id: string) => [...invoiceKeys.all, 'detail', id] as const,
   vendors: ['vendors'] as const,
+  sampleHolds: ['sample-holds'] as const,
 }
 
 export function useInvoices(status?: InvoiceStatus) {
@@ -30,6 +31,24 @@ export function useInvoice(id: string) {
   })
 }
 
+export type SampleHolds = {
+  ttlMinutes: number
+  holds: { invoiceNumber: string; freesAt: string }[]
+}
+
+/**
+ * Which sample invoices are already taken. Polled, because in production the
+ * row is shared: a sample can be taken by somebody else while this page is
+ * open, and a button that is still offered is a 409 waiting to happen.
+ */
+export function useSampleHolds() {
+  return useQuery({
+    queryKey: invoiceKeys.sampleHolds,
+    queryFn: () => api.get<SampleHolds>('/samples/holds'),
+    refetchInterval: 30_000,
+  })
+}
+
 export function useVendors() {
   return useQuery({ queryKey: invoiceKeys.vendors, queryFn: () => api.get<Vendor[]>('/vendors') })
 }
@@ -38,6 +57,11 @@ export function useUploadInvoice() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (form: FormData) => api.postForm<{ id: string }>('/invoices', form),
-    onSuccess: () => qc.invalidateQueries({ queryKey: invoiceKeys.all }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: invoiceKeys.all })
+      // A sample just became taken. Without this the button stays offered for
+      // up to the poll interval, and the next press is a 409.
+      await qc.invalidateQueries({ queryKey: invoiceKeys.sampleHolds })
+    },
   })
 }

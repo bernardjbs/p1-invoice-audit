@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { app } from '../app'
 import { sql } from '../db/client'
 import { loadAuditInput } from '../audit/data'
+import { downloadInvoicePdf } from '../lib/storage'
 
 /**
  * API read + upload endpoints (plan T6) + the audit DB loader. Integration tier:
@@ -120,6 +121,55 @@ describe('POST /api/invoices (multipart upload)', () => {
     // Upload auto-enqueues the audit (plan T7), so the invoice is now auditing.
     expect(row!.status).toBe('auditing')
     expect(row!.pdf_path).toBeTruthy()
+  })
+
+  /**
+   * Two assertions, because the duplicate had two failure modes and only one of
+   * them was visible. It answered 500 `internal server error`, which told a
+   * visitor nothing; and, because the PDF was stored before the insert under a
+   * path built from the invoice number with upsert on, it REPLACED the stored
+   * document of the invoice that already held that number. The original kept its
+   * audit findings and pointed at a different page.
+   */
+  it('rejects a duplicate invoice number with 409 and leaves the original PDF alone', async () => {
+    const number = `UP-DUP-${Date.now()}`
+    const vendorId = (await sql<{ id: string }[]>`select id from vendors limit 1`)[0]!.id
+
+    const first = new FormData()
+    first.set('invoiceNumber', number)
+    first.set('vendorId', vendorId)
+    first.set('subtotalAud', '1000')
+    first.set('gstAud', '100')
+    first.set('totalAud', '1100')
+    first.set('pdf', new File([TINY_PDF], 'first.pdf', { type: 'application/pdf' }))
+    const created = await app.request('/api/invoices', { method: 'POST', body: first })
+    expect(created.status).toBe(201)
+    const { id } = (await created.json()) as { id: string }
+
+    // A DIFFERENT document, so an overwrite would be detectable.
+    const OTHER_PDF = new Uint8Array([...TINY_PDF, 0x0a, 0x25, 0x25, 0x45, 0x4f, 0x46])
+    const second = new FormData()
+    second.set('invoiceNumber', number)
+    second.set('vendorId', vendorId)
+    second.set('subtotalAud', '1')
+    second.set('gstAud', '1')
+    second.set('totalAud', '2')
+    second.set('pdf', new File([OTHER_PDF], 'second.pdf', { type: 'application/pdf' }))
+    const rejected = await app.request('/api/invoices', { method: 'POST', body: second })
+
+    expect(rejected.status).toBe(409)
+    const body = (await rejected.json()) as { error: { message: string; code: string } }
+    expect(body.error.code).toBe('duplicate_invoice_number')
+    expect(body.error.message).toContain(number)
+
+    // The rejected upload must not have created a second row, nor changed the first.
+    const rows = await sql<{ id: string }[]>`
+      select id from invoices where invoice_number = ${number}`
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.id).toBe(id)
+
+    const stored = await downloadInvoicePdf(`${number}.pdf`)
+    expect(Array.from(stored)).toEqual(Array.from(TINY_PDF))
   })
 })
 
