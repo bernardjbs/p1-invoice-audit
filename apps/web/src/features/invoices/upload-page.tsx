@@ -72,9 +72,14 @@ export function UploadPage() {
           <p className="text-destructive text-sm">Upload failed: {upload.error.message}</p>
         )}
 
-        <Button type="submit" disabled={upload.isPending || !vendorId}>
-          {upload.isPending ? 'Uploading…' : 'Upload & audit'}
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button type="submit" disabled={upload.isPending || !vendorId}>
+            {upload.isPending ? 'Uploading…' : 'Upload & audit'}
+          </Button>
+          {!vendorId && !upload.isPending && (
+            <p className="text-muted-foreground text-sm">Choose a vendor to continue.</p>
+          )}
+        </div>
       </form>
     </div>
   )

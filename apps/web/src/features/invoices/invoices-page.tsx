@@ -1,4 +1,4 @@
-import { getRouteApi, Link } from '@tanstack/react-router'
+import { getRouteApi } from '@tanstack/react-router'
 import {
   Select,
   SelectContent,
@@ -15,6 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useInvoices } from './api'
+import { InvoiceLink } from './invoice-link'
 import { STATUS_META } from './status'
 import { StatusBadge } from './status-badge'
 import type { InvoiceStatus } from './types'
@@ -78,9 +79,7 @@ export function InvoicesPage() {
                 invoices.map((inv) => (
                   <TableRow key={inv.id}>
                     <TableCell className="font-medium">
-                      <Link to="/invoices/$id" params={{ id: inv.id }} className="hover:underline">
-                        {inv.invoiceNumber}
-                      </Link>
+                      <InvoiceLink id={inv.id} invoiceNumber={inv.invoiceNumber} />
                     </TableCell>
                     <TableCell>{inv.vendorName}</TableCell>
                     <TableCell>{formatDate(inv.invoiceDate)}</TableCell>

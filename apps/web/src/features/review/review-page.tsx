@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { formatAud, formatPct } from '@/lib/format'
+import { InvoiceLink } from '@/features/invoices/invoice-link'
 import { useReviewQueue, useSubmitReview } from './api'
 import type { ReviewQueueItem } from '@/features/invoices/types'
 
@@ -40,9 +40,7 @@ function ReviewCard({ item }: { item: ReviewQueueItem }) {
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0">
         <CardTitle className="text-base">
-          <Link to="/invoices/$id" params={{ id: item.id }} className="hover:underline">
-            {item.invoiceNumber}
-          </Link>{' '}
+          <InvoiceLink id={item.id} invoiceNumber={item.invoiceNumber} />{' '}
           <span className="text-muted-foreground font-normal">· {item.vendorName}</span>
         </CardTitle>
         <div className="text-muted-foreground text-sm">
