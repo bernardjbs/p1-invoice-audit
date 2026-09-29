@@ -6,6 +6,11 @@ driven the way a visitor drives it. Add to it as things turn up; delete an entry
 Every item carries a status: **needs fixing (I know how)**, **needs fixing (needs scoping)**, or
 **no action required**. An entry with no status is unfinished.
 
+**Ruled 2026-09-29.** Batch A shipped items 8, 14 and 7 plus the downloadable sample invoices
+(item 9, in part). Item 11 was moved out of Batch A into Batch B: removing the Flagged status means
+a database migration, and doing only the visible half would leave the app able to crash on a row
+the database still permits. See item 15 for the invoice builder, which is deliberately deferred.
+
 **Start here:** 10, then 8, then 1, then 4. Items 8 and 1 together make the product unreachable to a visitor:
 nothing on the live site has been audited, and there is no visible way into an invoice even if it
 had been. Item 4 is the engine gap. Everything else can wait behind those.
@@ -126,6 +131,12 @@ so it is always empty. Every uploaded invoice therefore flags "No purchase order
 invoice", permanently. One of the four checks can never pass on the path a visitor actually takes,
 and the flag they see says nothing about the invoice they uploaded.
 
+**Measured 2026-09-29, and it is worse than one flagged check.** Three sample invoices were run
+through the live engine. On all three `po_match` flagged, as expected, but the contract check ALSO
+returned a finding on all three, and on two of them what it objected to was the missing purchase
+order rather than the fault that was planted. So the missing PO does not cost one check, it costs
+two, and it muddies the one check a reader is being asked to watch.
+
 The scoping question is which fix serves the demo. A vendor's open purchase orders could be offered
 on the form, which is honest but adds a step. Or the engine could match on the amount and vendor
 rather than requiring an explicit link, which demonstrates more of the product. Neither is obviously
@@ -197,6 +208,20 @@ wired, and an invoice with no contract on file once its display stops reading as
 
 Cost to weigh: every upload runs a real audit, vision model and retrieval included. A full pass over
 this set is five audits, so it is a deliberate exercise rather than something to run casually.
+
+**Partly landed 2026-09-29.** Three of these now exist as downloadable PDFs on the upload page, with
+a button that fills the form and attaches the file so a visitor only presses Upload: the arithmetic
+mismatch, an overpriced line, and the contract-clause breach. They are a set of their own rather than
+the e2e fixtures, so a demo change cannot redden the paid suite, and none is billed to the unapproved
+supplier whose vendor check the live engine still wrongly passes (item 4).
+
+All three were run through the live engine the day they were written, and the page's wording was
+corrected to match what came back rather than what was expected. Two corrections worth keeping:
+the rate check returns `flag`, not `fail`, and the contract check fires on all three (see item 5).
+
+Still missing from the set, and still true: **the happy invoice cannot be built until item 5 is
+fixed**, because no upload can pass the purchase-order check; the adversarial case has no PDF; and
+**rejection has still never been exercised anywhere.**
 
 ## 10. The same invoice shows two different totals, and nothing checks the one you typed
 
@@ -271,6 +296,46 @@ a way to reopen a decision is the honest one.
 "Recent invoices" shows eight rows and offers no way to see the rest. A visitor has to notice the
 Invoices item in the top navigation. Harmless on its own; worth a "view all" link whenever that
 section is touched for another reason.
+
+## 15. A visitor cannot build an invoice of their own
+
+**Needs fixing, needs scoping. Deliberately deferred: build it after Batch B (ruled 2026-09-29).**
+
+The downloadable samples in item 9 let a visitor audit something, but not something of their own.
+The fuller idea is a small builder on the upload page: pick a vendor, add lines, set quantities and
+prices, and the app renders the PDF for them to submit. A visitor could then plant their own fault
+and watch the right check find it, which is a far better answer to "does this actually work" than
+three fixed files.
+
+The plumbing is already there. One renderer produces every invoice PDF in this repo, and the
+extraction prompt is written against that layout, so a builder would be a third caller of the same
+function rather than a new document the model has never seen.
+
+**Why it waits for Batch B.** Batch B closes the purchase-order gap (item 5) and the unchecked
+declared total (item 10). Until those land, anything a visitor builds comes back with two findings
+that are the app's fault rather than theirs, and a builder is precisely the feature that invites
+someone to poke at exactly those holes.
+
+## 16. Uploading the same invoice number twice says "internal server error"
+
+**Needs fixing, I know how.**
+
+The invoice number is unique in the database. The upload route does not catch the duplicate, so it
+reaches the generic error handler and the visitor is shown, verbatim, `internal server error`.
+Nothing on screen says which field is the problem.
+
+Measured 2026-09-29 against the running app: a second upload of an existing number returns HTTP 500
+with `{"error":{"message":"internal server error","code":"internal"}}`.
+
+This became sharper the day the samples landed. The "Use this" button fills the exact invoice number
+printed on the sample PDF, so a second press of the same sample is guaranteed to collide. Someone
+who tries a sample, likes it, and tries it again is shown a server error, and the honest reading of
+that screen is that the app broke.
+
+Fix: catch the unique-constraint failure in the upload path and return 409 with a message naming the
+number. The form already shows whatever the API says, so nothing on the web side needs changing.
+The panel's own text tells a visitor to edit the number, but a warning plus an opaque 500 is not a
+fix.
 
 ---
 
