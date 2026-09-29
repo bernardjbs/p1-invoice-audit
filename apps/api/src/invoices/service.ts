@@ -158,15 +158,56 @@ export type CreateInvoiceInput = {
 }
 
 /** Insert a received invoice and store its uploaded PDF. Returns the new id. */
+/**
+ * The invoice number is already taken. An expected outcome of a visitor
+ * uploading the same sample twice, not a fault, so it carries the number rather
+ * than a stack trace and the route turns it into a 409.
+ */
+export class DuplicateInvoiceNumberError extends Error {
+  constructor(readonly invoiceNumber: string) {
+    super(`invoice number ${invoiceNumber} already exists`)
+    this.name = 'DuplicateInvoiceNumberError'
+  }
+}
+
+/** Postgres `unique_violation`. `invoice_number` is the only unique column on this table. */
+const UNIQUE_VIOLATION = '23505'
+
 export async function createInvoice(input: CreateInvoiceInput): Promise<string> {
   const pdfPath = `${input.invoiceNumber}.pdf`
-  await uploadInvoicePdf(pdfPath, input.pdf)
-  const [row] = await sql<{ id: string }[]>`
-    insert into invoices (invoice_number, vendor_id, po_id, contract_id, subtotal_aud, gst_aud, total_aud, status, pdf_path)
-    values (${input.invoiceNumber}, ${input.vendorId}, ${input.poId ?? null}, ${input.contractId ?? null},
-            ${input.subtotalAud}, ${input.gstAud}, ${input.totalAud}, 'received', ${pdfPath})
-    returning id`
-  return row!.id
+
+  // INSERT FIRST, then upload. The old order wrote the PDF before inserting, and
+  // the storage path is the invoice number with `upsert: true`, so uploading a
+  // number that already existed REPLACED that invoice's stored document and only
+  // then failed on the insert. The original invoice kept its findings and pointed
+  // at somebody else's paper, which in an audit tool is the evidence trail going
+  // quietly wrong — worse than the error the caller saw. Reserving the number in
+  // the database first means a duplicate never reaches storage at all.
+  let id: string
+  try {
+    const [row] = await sql<{ id: string }[]>`
+      insert into invoices (invoice_number, vendor_id, po_id, contract_id, subtotal_aud, gst_aud, total_aud, status, pdf_path)
+      values (${input.invoiceNumber}, ${input.vendorId}, ${input.poId ?? null}, ${input.contractId ?? null},
+              ${input.subtotalAud}, ${input.gstAud}, ${input.totalAud}, 'received', ${pdfPath})
+      returning id`
+    id = row!.id
+  } catch (cause) {
+    if ((cause as { code?: string }).code === UNIQUE_VIOLATION) {
+      throw new DuplicateInvoiceNumberError(input.invoiceNumber)
+    }
+    throw cause
+  }
+
+  try {
+    await uploadInvoicePdf(pdfPath, input.pdf)
+  } catch (cause) {
+    // Never leave a row pointing at a document that was never stored: the audit
+    // would run against a PDF that does not exist and fail for the wrong reason.
+    await sql`delete from invoices where id = ${id}`
+    throw cause
+  }
+
+  return id
 }
 
 /** Set an invoice's workflow status. */

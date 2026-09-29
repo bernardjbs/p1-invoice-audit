@@ -2,7 +2,13 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { INVOICE_STATUSES } from '../db/statuses'
 import { enqueueAudit } from '../queue/audit-queue'
-import { createInvoice, getInvoiceDetail, listInvoices, setInvoiceStatus } from './service'
+import {
+  createInvoice,
+  getInvoiceDetail,
+  listInvoices,
+  setInvoiceStatus,
+  DuplicateInvoiceNumberError,
+} from './service'
 
 /**
  * Invoice HTTP routes (plan T6): list (with status filter), detail, and
@@ -52,7 +58,27 @@ invoicesRoutes.post('/invoices', async (c) => {
     return c.json({ error: { message: 'pdf file is required', code: 'no_pdf' } }, 400)
   const bytes = new Uint8Array(await pdf.arrayBuffer())
 
-  const id = await createInvoice({ ...fields.data, pdf: bytes })
+  let id: string
+  try {
+    id = await createInvoice({ ...fields.data, pdf: bytes })
+  } catch (err) {
+    // Named here rather than left to the central handler: a taken invoice number
+    // is an expected outcome the visitor can act on, and a generic 500 told them
+    // only that something broke. The sample invoices make this routine, because
+    // "Use this" fills the number printed on the PDF.
+    if (err instanceof DuplicateInvoiceNumberError) {
+      return c.json(
+        {
+          error: {
+            message: `invoice number ${err.invoiceNumber} already exists — choose another`,
+            code: 'duplicate_invoice_number',
+          },
+        },
+        409,
+      )
+    }
+    throw err
+  }
   // Auto-enqueue the audit on upload and mark it auditing (plan T7).
   await enqueueAudit(id)
   await setInvoiceStatus(id, 'auditing')
