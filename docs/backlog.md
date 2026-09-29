@@ -7,7 +7,17 @@ Every item carries a status: **needs fixing (I know how)**, **needs fixing (need
 **no action required**. An entry with no status is unfinished.
 
 **Ruled 2026-09-29.** Batch A shipped items 8, 14 and 7 plus the downloadable sample invoices
-(item 9, in part). Item 11 was moved out of Batch A into Batch B: removing the Flagged status means
+(item 9, in part). Item 16, a duplicate invoice number answering an opaque 500 while silently
+overwriting the original's stored PDF, was found and closed the same day and is deleted from here.
+
+**Two production steps are owed before the next deploy proves anything**, both introduced by the
+sample cleanup and neither runnable by an agent:
+
+1. Apply the migration adding `invoices.created_at` to the production database.
+2. `doppler run -c prd -- bun run scripts/setup-prod-cleanup.ts` to schedule the sweep.
+
+Until the second runs, samples accumulate in production and every one of them stays marked as in
+use for ever, because nothing clears them. Item 11 was moved out of Batch A into Batch B: removing the Flagged status means
 a database migration, and doing only the visible half would leave the app able to crash on a row
 the database still permits. See item 15 for the invoice builder, which is deliberately deferred.
 
@@ -315,27 +325,6 @@ function rather than a new document the model has never seen.
 declared total (item 10). Until those land, anything a visitor builds comes back with two findings
 that are the app's fault rather than theirs, and a builder is precisely the feature that invites
 someone to poke at exactly those holes.
-
-## 16. Uploading the same invoice number twice says "internal server error"
-
-**Needs fixing, I know how.**
-
-The invoice number is unique in the database. The upload route does not catch the duplicate, so it
-reaches the generic error handler and the visitor is shown, verbatim, `internal server error`.
-Nothing on screen says which field is the problem.
-
-Measured 2026-09-29 against the running app: a second upload of an existing number returns HTTP 500
-with `{"error":{"message":"internal server error","code":"internal"}}`.
-
-This became sharper the day the samples landed. The "Use this" button fills the exact invoice number
-printed on the sample PDF, so a second press of the same sample is guaranteed to collide. Someone
-who tries a sample, likes it, and tries it again is shown a server error, and the honest reading of
-that screen is that the app broke.
-
-Fix: catch the unique-constraint failure in the upload path and return 409 with a message naming the
-number. The form already shows whatever the API says, so nothing on the web side needs changing.
-The panel's own text tells a visitor to edit the number, but a warning plus an opaque 500 is not a
-fix.
 
 ---
 
