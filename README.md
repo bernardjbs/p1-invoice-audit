@@ -24,6 +24,21 @@ requirements.
 
 ---
 
+## Trying it
+
+The live site ships three sample invoices, each with a single fault planted in it: the sums not
+adding up, a line billed above its contracted rate, and a charge the contract forbids. Pressing
+**Use this** on the upload page fills the form and attaches the PDF, so a visitor runs a real
+audit in one click, against the real engine, and watches it pause for a human.
+
+One fault each is deliberate. An invoice carrying every fault proves almost nothing: when all the
+checks fire together, a check that fires unconditionally is indistinguishable from one that works.
+
+Every sample was run through the deployed engine before release and the page's wording was
+corrected to match what came back rather than what was expected. The page also states the gap it
+cannot yet close: nothing uploaded through the form carries a purchase-order reference, so that
+check flags on everything.
+
 ## The problem
 
 Procurement fraud and billing errors hide in the gap between three documents: the invoice, the

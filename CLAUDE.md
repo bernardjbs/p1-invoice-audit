@@ -52,9 +52,14 @@ only cached thing in the workflow is Python packages), so every paid run there m
 afresh. Measured 2026-09-24: two runs of the same commit scored 0.635 and 0.734, which replayed
 judgements could not do.
 
-**Builds forked from this repo work on branches and merge by pull request.** P1 itself did not:
-its history is a straight line of pushes to `main`, which is what taught the lesson. The rule is
-written here because P2 forks this repo and inherits this file.
+**Work on branches and merge by pull request.** This now binds P1 itself, not only its forks.
+The convention was first written on the premise that P1 had no more feature work; the backlog made
+that false, and Batch A merged as PR #2 on 2026-09-29. Merge with a merge commit or a rebase,
+never a squash: the per-commit reasoning is the point of writing it. `delete_branch_on_merge` is
+on, so a merged branch removes itself.
+
+Everything before PR #2 is a straight line of pushes to `main`, which is what taught the lesson,
+and that history is not rewritten to pretend otherwise.
 
 Two reasons, and the second is the one that does not show up in a diff:
 

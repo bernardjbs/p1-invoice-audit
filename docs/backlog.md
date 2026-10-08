@@ -26,9 +26,11 @@ use for ever, because nothing clears them. Item 11 was moved out of Batch A into
 a database migration, and doing only the visible half would leave the app able to crash on a row
 the database still permits. See item 15 for the invoice builder, which is deliberately deferred.
 
-**Start here:** 10, then 8, then 1, then 4. Items 8 and 1 together make the product unreachable to a visitor:
-nothing on the live site has been audited, and there is no visible way into an invoice even if it
-had been. Item 4 is the engine gap. Everything else can wait behind those.
+**Start here: item 1, then Batch B (4, 12, 10, 11).** Item 8 shipped on 2026-09-29, so an invoice
+can now be opened and three sample invoices can be audited in one click. What has not changed is
+that **nothing on the live site has ever been audited**: the dashboard a visitor lands on is still
+a wall of zeros, which makes item 1 the largest remaining gap. Item 4 is the engine gap and travels
+with Batch B.
 
 ---
 
@@ -348,6 +350,27 @@ function rather than a new document the model has never seen.
 declared total (item 10). Until those land, anything a visitor builds comes back with two findings
 that are the app's fault rather than theirs, and a builder is precisely the feature that invites
 someone to poke at exactly those holes.
+
+## 17. Sign-in with Microsoft Entra ID, tied to the approver
+
+**Needs fixing, needs scoping.** Ruled 2026-10-08 (from the build-resume session): Entra goes in
+this project, not in Apply Proper (P5, `~/code/projects-portfolio/p5-apply-proper`), because here it is the right tool rather than a
+resume choice.
+
+The app has no sign-in today. Its users would be procurement staff, who sign in with Microsoft 365
+at work, and it already has a job for identity: the human who clears a paused invoice. With Entra
+that approval is tied to a signed-in user and recorded in the audit trail ("who approved this
+payment"). It also answers Perth demand: 13 of 45 Azure-naming ads ask for Entra ID or Active
+Directory (`~/code/build-resume/docs/azure-path.md`, measured 2026-09-08).
+
+Unknowns to scope before planning:
+
+- **Cost.** Believed free at this scale; unverified. Read Microsoft's official Entra pricing page
+  first, then set a $0 budget alert on the Azure account.
+- **The open demo.** Sign-in must not lock visitors out. Needs a guest demo mode (read-only or
+  sandboxed) alongside it.
+- **Workforce tenant or External ID.** Staff sign-in suggests a workforce tenant; decide with the
+  guest mode.
 
 ---
 
