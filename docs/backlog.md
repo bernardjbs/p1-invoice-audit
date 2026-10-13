@@ -10,8 +10,11 @@ Every item carries a status: **needs fixing (I know how)**, **needs fixing (need
 (item 9, in part). Item 16, a duplicate invoice number answering an opaque 500 while silently
 overwriting the original's stored PDF, was found and closed the same day and is deleted from here.
 
-**Two production steps are owed before the next deploy proves anything**, both introduced by the
-sample cleanup and neither runnable by an agent:
+**Both production steps below are DONE, verified 2026-10-13** by read-only queries on production:
+`invoices.created_at` exists, and cron job `sample-cleanup` is active on `*/5 * * * *` with 3,873
+succeeded runs, the last at 2026-10-13 02:55 UTC. HISTORICAL (2026-09-29): two production steps were
+owed before the next deploy proved anything, both introduced by the sample cleanup and neither
+runnable by an agent:
 
 1. Apply the migration adding `invoices.created_at` to the production database.
 2. `doppler run -c prd -- bun run scripts/setup-prod-cleanup.ts` to schedule the sweep.
@@ -21,7 +24,7 @@ sample cleanup and neither runnable by an agent:
    raising either without doing that sum is how a visitor ends up looking at a dead button for
    hours. Set `SAMPLE_TTL_MINUTES` in the deployed env; the schedule is this script's argument.
 
-Until the second runs, samples accumulate in production and every one of them stays marked as in
+HISTORICAL, before the second ran: samples accumulate in production and every one of them stays marked as in
 use for ever, because nothing clears them. Item 11 was moved out of Batch A into Batch B: removing the Flagged status means
 a database migration, and doing only the visible half would leave the app able to crash on a row
 the database still permits. See item 15 for the invoice builder, which is deliberately deferred.
