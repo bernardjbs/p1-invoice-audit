@@ -205,6 +205,25 @@ class TestBuildJudge:
         )
         assert "top_p" not in judge.model_args
 
+    def test_sends_no_temperature_because_haiku_5_5_rejects_any(self, tmp_path: Path) -> None:
+        """Measured 2026-10-14: `claude-haiku-5-5` answers any `temperature`,
+        even 0, with HTTP 400 "`temperature` is deprecated for this model."
+
+        The adapter defaults it to 0.01 and passes it straight through for
+        Anthropic, so every judge call would fail at request time.
+        """
+        pytest.importorskip("anthropic")
+        from anthropic import AsyncAnthropic
+
+        from ragas_gate.grading import build_judge
+
+        judge = build_judge(
+            model="claude-haiku-5-5",
+            client=AsyncAnthropic(api_key="not-a-real-key"),
+            cache_dir=str(tmp_path / "cache"),
+        )
+        assert "temperature" not in judge.model_args
+
 
 # --- The rubric scale, and who each metric applies to ------------------------
 
@@ -381,3 +400,14 @@ class TestJudgeCacheIsKeyedByModel:
         a = self.cache_location("vendor/model", tmp_path / "judge")
         b = self.cache_location("vendor_model", tmp_path / "judge")
         assert a != b
+
+    @pytest.mark.parametrize("model", ["", ".", ".."])
+    def test_a_path_like_model_id_gets_its_own_directory(self, model: str, tmp_path: Path) -> None:
+        """`""` and `"."` would resolve to the base itself, which may hold an
+        older model's marks; `".."` would resolve above it."""
+        from ragas_gate.grading import judge_cache_dir
+
+        base = (tmp_path / "judge").resolve()
+        location = Path(judge_cache_dir(str(base), model)).resolve()
+        assert location != base
+        assert location.parent == base

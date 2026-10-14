@@ -186,13 +186,17 @@ def build_judge(
 ) -> Any:
     """Construct the judge.
 
-    Two traps, both undocumented and both found the hard way:
+    Three traps, all undocumented and all found the hard way:
 
     1. The adapter sets `temperature` AND `top_p`; the Anthropic API rejects the
        pair. It fails at request time, not at setup, so it is popped here and
        asserted in a test rather than remembered.
     2. The Anthropic SDK removed `temperature` in 1.x while the adapter still
        sends it, which is why the dependency is pinned below 1.0.
+    3. `claude-haiku-5-5` rejects any `temperature`, even 0, with HTTP 400
+       "`temperature` is deprecated for this model." (measured 2026-10-14).
+       The adapter defaults it to 0.01 and passes it straight through for
+       Anthropic, so it is popped too, and asserted in a test.
     """
     from ragas.cache import DiskCacheBackend
     from ragas.llms import llm_factory
@@ -211,6 +215,7 @@ def build_judge(
         cache=DiskCacheBackend(cache_dir=judge_cache_dir(cache_dir, model)),
     )
     judge.model_args.pop("top_p", None)
+    judge.model_args.pop("temperature", None)
 
     # The adapter's default cap is 1024, and faithfulness blew through it on two
     # invoices (2026-09-08): it decomposes an answer into claims and checks each
