@@ -441,6 +441,37 @@ unmeasured.
 `anthropic` 1.x. Lift the pin, run `uv run --project evals/ragas pytest evals/ragas/tests -q`, then
 one paid re-grade from a warm cache and compare the per-metric means.
 
+## 21. The Doppler to Vercel integration did not push a replaced secret
+
+**Status: needs fixing (needs scoping).** Ruled 2026-10-14: record, with a trigger.
+
+The Anthropic key was replaced in Doppler `prd` on 2026-10-14 at 15:49 AWST. The deploy that
+evening still ran with the old one: Vercel listed `ANTHROPIC_API_KEY` for production as created
+21 days earlier, and the first production audit failed with `401 invalid x-api-key` (worker log,
+12:37 UTC). The key was pushed by hand with the Doppler-to-Vercel pipe and the site redeployed;
+the smoke then passed. Note `vercel env ls` shows a _created_ date that does not move on an
+update, so it is no evidence either way; the first real audit is the only proof.
+Whether the integration is disconnected, paused, or only syncs on some other event is unknown; it
+is a Doppler dashboard question.
+
+**Trigger:** the next time any `prd` secret changes, or before P2 copies this deploy setup. Check
+the integration's sync log in the Doppler dashboard first; if it is dead, remove it and keep the
+documented pipe (`doppler secrets get … | vercel env add … --force`) as the only route, so a
+silent half-sync cannot recur.
+
+## 22. The arithmetic card says "does not balance" beside two equal figures
+
+**Status: needs fixing (I know how).** Ruled 2026-10-14: record; goes with the next PR or plan
+that touches `apps/api/src/audit/` (an engine-folder change forces an eval rebuild, so it rides
+along rather than paying for its own).
+
+Seen on the production seed, INV-0018: lines sum to $2,000, the stated subtotal is $2,100. The
+math check fails correctly, but its evidence reads `expected 2310.00 / actual 2310.00`, the
+total, which IS consistent with the stated subtotal. The figure a visitor needs, subtotal
+against line sum, is not shown, so the card contradicts itself. Fix: the evidence names the pair
+that disagrees (line sum vs stated subtotal, or GST vs 10% of subtotal, or total vs subtotal
+plus GST), not always the total. One check file and its unit test.
+
 ---
 
 ## Verified working, 2026-09-24
