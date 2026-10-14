@@ -449,7 +449,7 @@ The Anthropic key was replaced in Doppler `prd` on 2026-10-14 at 15:49 AWST. The
 evening still ran with the old one: Vercel listed `ANTHROPIC_API_KEY` for production as created
 21 days earlier, and the first production audit failed with `401 invalid x-api-key` (worker log,
 12:37 UTC). The key was pushed by hand with the Doppler-to-Vercel pipe and the site redeployed;
-the smoke then passed. Note `vercel env ls` shows a *created* date that does not move on an
+the smoke then passed. Note `vercel env ls` shows a _created_ date that does not move on an
 update, so it is no evidence either way; the first real audit is the only proof.
 Whether the integration is disconnected, paused, or only syncs on some other event is unknown; it
 is a Doppler dashboard question.
