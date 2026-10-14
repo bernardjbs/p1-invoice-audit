@@ -99,6 +99,56 @@ describe('GET /api/invoices/:id', () => {
     const res = await app.request('/api/invoices/00000000-0000-0000-0000-000000000000')
     expect(res.status).toBe(404)
   })
+
+  /**
+   * The cleanup sweep returns a decided seeded invoice to `paused_review` and
+   * keeps its decision row on record. The detail read must then stop showing
+   * that row, or the page offers a fresh review under a decision already made.
+   * One reserved invoice, walked through both states, owns this pair.
+   */
+  describe('review decision follows the status', () => {
+    const FIXTURE = 'INV-0951'
+    let fixtureId: string
+
+    beforeAll(async () => {
+      await sql`delete from invoices where invoice_number = ${FIXTURE}`
+      const [inv] = await sql<{ id: string }[]>`
+        insert into invoices (invoice_number, vendor_id, subtotal_aud, gst_aud, total_aud, status)
+        select ${FIXTURE}, v.id, 100, 10, 110, 'approved'
+        from vendors v limit 1
+        returning id`
+      fixtureId = inv!.id
+      await sql`
+        insert into review_decisions (invoice_id, decision, note)
+        values (${fixtureId}, 'approved', 'fixture decision')`
+    })
+
+    afterAll(async () => {
+      await sql`delete from invoices where invoice_number = ${FIXTURE}`
+    })
+
+    type DetailBody = { reviewDecision: { decision: string } | null }
+
+    it('shows the decision while the invoice is approved', async () => {
+      const res = await app.request(`/api/invoices/${fixtureId}`)
+      expect(res.status).toBe(200)
+      const body = (await res.json()) as DetailBody
+      expect(body.reviewDecision?.decision).toBe('approved')
+    })
+
+    it('hides the kept decision once the invoice is back in paused_review', async () => {
+      await sql`update invoices set status = 'paused_review' where id = ${fixtureId}`
+      const [kept] = await sql<{ n: number }[]>`
+        select count(*)::int as n from review_decisions where invoice_id = ${fixtureId}`
+      // The row must still exist, or a null below would prove nothing about the read.
+      expect(kept!.n).toBe(1)
+
+      const res = await app.request(`/api/invoices/${fixtureId}`)
+      expect(res.status).toBe(200)
+      const body = (await res.json()) as DetailBody
+      expect(body.reviewDecision).toBeNull()
+    })
+  })
 })
 
 describe('POST /api/invoices (multipart upload)', () => {
