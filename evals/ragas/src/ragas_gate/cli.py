@@ -45,7 +45,7 @@ EXIT_MISCONFIGURED = 2
 
 def load_config(
     path: Path,
-) -> tuple[dict[str, float], float, frozenset[str], frozenset[str], frozenset[str]]:
+) -> tuple[dict[str, float], float, frozenset[str], frozenset[str], frozenset[str], str | None]:
     if not path.is_file():
         raise FileNotFoundError(f"no gate config at {path}")
     data = tomllib.loads(path.read_text())
@@ -58,7 +58,41 @@ def load_config(
     report_only_metrics = frozenset(
         str(m) for m in data.get("gate", {}).get("report_only_metrics", [])
     )
-    return thresholds, min_graded, per_case, report_only, report_only_metrics
+    judge_model = data.get("gate", {}).get("judge_model")
+    return (
+        thresholds,
+        min_graded,
+        per_case,
+        report_only,
+        report_only_metrics,
+        str(judge_model) if judge_model is not None else None,
+    )
+
+
+def judge_mismatch(calibrated: str | None, marked_by: str | None) -> str | None:
+    """Why these marks cannot be held to this bar, or None when they can.
+
+    A judged threshold is a number on one judge's scale. Measured 2026-10-14:
+    the same twenty summaries scored 0.688 under Haiku 4.5 and 0.547 under
+    Haiku 5.5, so a bar set from one judge's run silently fails or flatters the
+    next judge's marks. The config names the judge its bar was set against;
+    marks from any other judge are refused until the bar is re-set with them.
+    No name in the config means no claim, which keeps fabricated scores free.
+    """
+    if calibrated is None:
+        return None
+    if marked_by == calibrated:
+        return None
+    return (
+        f"the bar in the config was calibrated against judge {calibrated}; these marks "
+        f"come from {marked_by or 'an unnamed judge'}. Grade the previous dataset with the "
+        "new judge, compare the means, then set the threshold and judge_model together."
+    )
+
+
+def scores_model(path: Path) -> str | None:
+    raw = json.loads(path.read_text())
+    return str(raw["model"]) if isinstance(raw, dict) and raw.get("model") is not None else None
 
 
 def load_scores(path: Path) -> tuple[dict[str, list[Score]], list[str]]:
@@ -207,6 +241,7 @@ def main(argv: list[str] | None = None) -> int:
             per_case_metrics,
             report_only,
             report_only_metrics,
+            calibrated_judge,
         ) = load_config(args.config)
     except (FileNotFoundError, ValueError) as err:
         print(f"ragas-gate: {err}", file=sys.stderr)
@@ -239,6 +274,12 @@ def main(argv: list[str] | None = None) -> int:
                     file=sys.stderr,
                 )
                 return EXIT_MISCONFIGURED
+            from .grading import DEFAULT_JUDGE_MODEL
+
+            why = judge_mismatch(calibrated_judge, args.judge_model or DEFAULT_JUDGE_MODEL)
+            if why is not None:
+                print(f"ragas-gate: {why} Refusing to call a model.", file=sys.stderr)
+                return EXIT_MISCONFIGURED
             try:
                 judged_from = run_grading(
                     args.dataset, args.grade, args.judge_model, args.rubric.read_text()
@@ -248,6 +289,14 @@ def main(argv: list[str] | None = None) -> int:
                 return EXIT_MISCONFIGURED
 
         if judged_from is not None:
+            try:
+                why = judge_mismatch(calibrated_judge, scores_model(judged_from))
+            except (OSError, json.JSONDecodeError, TypeError, ValueError) as err:
+                print(f"ragas-gate: cannot read scores at {judged_from}: {err}", file=sys.stderr)
+                return EXIT_MISCONFIGURED
+            if why is not None:
+                print(f"ragas-gate: {why}", file=sys.stderr)
+                return EXIT_MISCONFIGURED
             try:
                 by_metric = merge_judged(by_metric, [r.invoice_number for r in rows], judged_from)
             except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as err:
@@ -289,6 +338,14 @@ def main(argv: list[str] | None = None) -> int:
             )
             return EXIT_MISCONFIGURED
         scores_path = args.scores
+        try:
+            why = judge_mismatch(calibrated_judge, scores_model(scores_path))
+        except (OSError, json.JSONDecodeError, TypeError, ValueError) as err:
+            print(f"ragas-gate: cannot read scores at {scores_path}: {err}", file=sys.stderr)
+            return EXIT_MISCONFIGURED
+        if why is not None:
+            print(f"ragas-gate: {why}", file=sys.stderr)
+            return EXIT_MISCONFIGURED
 
     try:
         by_metric, case_labels = load_scores(scores_path)
