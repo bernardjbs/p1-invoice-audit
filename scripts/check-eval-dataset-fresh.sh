@@ -74,4 +74,28 @@ if (( engine_ts > dataset_ts )); then
   exit 1
 fi
 
-echo "OK: eval dataset is at or ahead of the engine it grades."
+# The timestamps say the recording is not OLDER than the engine; the record says
+# which engine it was actually made from. Both are needed: commits can share a
+# second, and a record built from a dirty tree names a commit the engine had
+# already moved past (measured 2026-10-14, on the record's first outing).
+if [[ ! -f "$BUILD_RECORD" ]]; then
+  echo "check-eval-dataset-fresh: no build record at $BUILD_RECORD -- rebuild the dataset." >&2
+  exit 1
+fi
+recorded=$(sed -n 's/.*"engine_commit": *"\([0-9a-f]*\)".*/\1/p' "$BUILD_RECORD")
+# grep -o rather than sed alternation: BSD sed (macOS) has no \| in basic regex.
+dirty=$(grep -o '"engine_tree_dirty": *[a-z]*' "$BUILD_RECORD" | sed 's/.*: *//')
+engine_head=$(git log -1 --format=%H -- "${ENGINE_PATHS[@]}")
+if [[ "$dirty" == "true" ]]; then
+  echo "check-eval-dataset-fresh: the build record was made from a DIRTY engine tree (uncommitted" >&2
+  echo "  changes under apps/api/src/audit). Commit the engine, rebuild, commit the record." >&2
+  exit 1
+fi
+if [[ -z "$recorded" ]] || ! git merge-base --is-ancestor "$engine_head" "$recorded" 2>/dev/null; then
+  echo "check-eval-dataset-fresh: the build record names engine commit ${recorded:-?}, which does" >&2
+  echo "  not contain the engine's last change $(git log -1 --format='%h %s' -- "${ENGINE_PATHS[@]}")." >&2
+  echo "  The recording was made from an older engine. Rebuild at a clean checkout and commit the record." >&2
+  exit 1
+fi
+
+echo "OK: eval dataset is at or ahead of the engine it grades (record $(git rev-parse --short "$recorded"))."

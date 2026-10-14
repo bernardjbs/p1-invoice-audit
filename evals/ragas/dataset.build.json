@@ -1,10 +1,11 @@
 {
-  "engine_commit": "93381d7ab44c21f4490dbd51ede1d711640e0552",
-  "built_at": "2026-10-14T11:33:29.683Z",
+  "engine_commit": "77b399834c1927491ad7f95a54f6f1ee5a4df499",
+  "engine_tree_dirty": false,
+  "built_at": "2026-10-14T12:06:35.550Z",
   "rows": 20,
   "pdf_reads": {
-    "cached": 18,
-    "paid": 2
+    "cached": 20,
+    "paid": 0
   },
   "judge_calls": {
     "cached": 19,

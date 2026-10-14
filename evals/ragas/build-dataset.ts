@@ -22,13 +22,27 @@ import { renderInvoice } from '../lib/render-invoice'
 
 /** The commit the engine was at when this recording was made; 'unknown' outside a checkout. */
 function engineCommit(): string {
+  return git(['rev-parse', 'HEAD']) ?? 'unknown'
+}
+
+/**
+ * Whether the engine folder had uncommitted changes when this was built. A
+ * record from a dirty tree names a commit the engine has already moved past,
+ * and the freshness gate refuses it: the recording cannot be tied to a commit.
+ */
+function engineTreeDirty(): boolean {
+  const out = git(['status', '--porcelain', '--', 'apps/api/src/audit', ':!*.test.ts'])
+  return out === null ? true : out.length > 0
+}
+
+function git(args: string[]): string | null {
   try {
-    return execFileSync('git', ['rev-parse', 'HEAD'], {
+    return execFileSync('git', args, {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
     }).trim()
   } catch {
-    return 'unknown'
+    return null
   }
 }
 
@@ -269,6 +283,7 @@ async function main(): Promise<void> {
     JSON.stringify(
       {
         engine_commit: engineCommit(),
+        engine_tree_dirty: engineTreeDirty(),
         built_at: new Date().toISOString(),
         rows: built.length,
         pdf_reads: { cached: readerStats.hits, paid: readerStats.misses },
