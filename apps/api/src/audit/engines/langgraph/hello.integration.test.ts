@@ -29,7 +29,7 @@ const HelloState = Annotation.Root({
   formatted: Annotation<string>,
 })
 
-const MODEL = 'claude-haiku-4-5'
+const MODEL = 'claude-haiku-5-5'
 
 /** Node 1 — ask the model. Returns ONLY the slice of state it changed. */
 async function askNode(state: typeof HelloState.State): Promise<{ reply: string }> {

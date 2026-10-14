@@ -66,7 +66,7 @@ export type ClauseJudge = (system: string, prompt: string) => Promise<string>
  * Sonnet rather than Haiku: this is the only step asked to reason about meaning
  * rather than transcribe. The tier is arbitrated by the eval, like extraction's.
  */
-export const DEFAULT_JUDGE_MODEL = 'claude-sonnet-4-6'
+export const DEFAULT_JUDGE_MODEL = 'claude-sonnet-5-5'
 
 /**
  * The question put to retrieval. Built from what is CHARGED — descriptions and

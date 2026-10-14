@@ -102,12 +102,13 @@ function parseReply(reply: string): ExtractedInvoice {
 }
 
 /**
- * Haiku is the cheapest model that can read a page, and this runs once per
- * invoice, so it is the default. The locked decision is that the tier is
- * arbitrated by the eval, not by taste: if the oracle gate scores below its
- * threshold, this moves up to Sonnet and both scores go in the record.
+ * Haiku, the lowest tier, is the default: this runs once per invoice and only
+ * has to transcribe the page, not judge it. The locked decision is that the tier
+ * is arbitrated by the eval, not by taste: if the oracle gate scores below its
+ * threshold, this moves up to Sonnet and both scores go in the record. The ID is
+ * pinned by models.test.ts because the eval dataset was measured against it.
  */
-export const DEFAULT_EXTRACTION_MODEL = 'claude-haiku-4-5'
+export const DEFAULT_EXTRACTION_MODEL = 'claude-haiku-5-5'
 
 /**
  * Claude vision through LangChain. Imported dynamically, together with the env,

@@ -110,7 +110,7 @@ are free because the data is synthetic: the seed writes the invoice rows, the PD
 those rows, and the answer key is derived from the rows again — the model only ever sees the rendered
 page.
 
-Haiku 4.5 scored 1.0000 on the original twenty invoices, so the cheaper model stayed. The single
+Haiku 5.5 scored <T6 score> on the original twenty invoices, so the cheaper model stayed. The single
 imperfect field today is the description of a deliberately adversarial invoice, which the model
 declines to transcribe verbatim — left as measured rather than tuned away.
 
