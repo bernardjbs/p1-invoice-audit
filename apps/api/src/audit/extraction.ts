@@ -106,7 +106,8 @@ function parseReply(reply: string): ExtractedInvoice {
  * has to transcribe the page, not judge it. The locked decision is that the tier
  * is arbitrated by the eval, not by taste: if the oracle gate scores below its
  * threshold, this moves up to Sonnet and both scores go in the record. The ID is
- * pinned by models.test.ts because the eval dataset was measured against it.
+ * pinned by models.test.ts because the eval dataset's scores belong to whichever
+ * model this names, so changing it means rebuilding the dataset.
  */
 export const DEFAULT_EXTRACTION_MODEL = 'claude-haiku-5-5'
 
