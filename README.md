@@ -110,9 +110,10 @@ are free because the data is synthetic: the seed writes the invoice rows, the PD
 those rows, and the answer key is derived from the rows again — the model only ever sees the rendered
 page.
 
-Haiku 5.5 scored <T6 score> on the original twenty invoices, so the cheaper model stayed. The single
-imperfect field today is the description of a deliberately adversarial invoice, which the model
-declines to transcribe verbatim — left as measured rather than tuned away.
+Haiku 5.5 scored 100.0% over 275 field comparisons on the 22 seeded invoices (measured 2026-10-14),
+so the cheaper model stayed. Haiku 4.5 had one imperfect field, the description of a deliberately
+adversarial invoice, which it declined to transcribe verbatim; Haiku 5.5 transcribes it as printed.
+Both are left as measured rather than tuned.
 
 ## Evidence discipline
 

@@ -8,19 +8,22 @@
 # --- Judged. These two cost money. ---
 #
 # Marks the summary against the five-level scale in rubric.md, normalised from
-# 1-5 onto 0-1. Set from the first full run (2026-09-08), not from the plan.
+# 1-5 onto 0-1. Set from a measured run, never from the plan, and set BELOW that
+# run's mean so the line catches a regression without certifying excellence.
+# Thirteen of the sixteen gating rows are clean passes sitting mid-scale BY
+# DESIGN, since the rubric sets a low bar for a pass on purpose; raising the bar
+# to flatter the current number would fail the build on prose that is fine.
 #
-# On that run it scored 1.00 on every row the engine gets right, 0.00 on every
-# row it gets wrong, and spread the clean invoices 0.25 to 0.75 by how specific
-# the prose is -- hedged "all visible fields appear consistent" at the bottom,
-# checkable "a separate GST line equal to 10% of the subtotal" at the top.
-#
-# 0.5 is deliberately below the 0.562 that run produced. Thirteen of the sixteen
-# gating rows are clean passes sitting mid-scale BY DESIGN, since the rubric sets
-# a low bar for a pass on purpose. This line catches a regression; it does not
-# certify excellence, and raising it to flatter the current number would fail the
-# build on prose that is fine.
-rubric_score = 0.6
+# The number is a mark on ONE judge's scale, so it is re-set whenever the judge
+# changes, and `judge_model` under [gate] makes the gate refuse marks from any
+# other. Calibration record (gating-row mean, 16 rows):
+#   2026-09-08  Haiku 4.5 judge, Sonnet 4.6 prose   0.562  -> bar 0.5 (later 0.6)
+#   2026-09-23  Haiku 4.5 judge, Sonnet 4.6 prose   0.688
+#   2026-10-14  Haiku 5.5 judge, Sonnet 4.6 prose   0.547  (old prose, new judge)
+#   2026-10-14  Haiku 5.5 judge, Sonnet 5.5 prose   0.547  -> bar 0.5
+# The last two rows are the same mean on different prose: the judge moved, the
+# prose did not, so the bar follows the judge. Ruled by Bernard 2026-10-14.
+rubric_score = 0.5
 
 # "Did it assert anything the documents do not support." Still scored, still
 # printed, listed under `report_only_metrics` below so it does not decide the
@@ -59,6 +62,9 @@ cited_clause_correct = 0.9
 verdict_correct = 0.9
 
 [gate]
+# The judge the rubric_score bar was set against. Marks from any other judge
+# are refused, not compared: re-measure, then change this and the bar together.
+judge_model = "claude-haiku-5-5"
 # A mean over a handful of surviving rows is not a mean over the dataset. At
 # least this share of the rows a metric APPLIES to must actually have graded, or
 # the gate fails regardless of the average -- otherwise a collapse of the
