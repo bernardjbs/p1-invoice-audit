@@ -45,7 +45,11 @@ watches that folder and cannot tell a presentation helper from a prompt change, 
 build until the dataset is rebuilt and re-graded — deliberately blunt, because a gate clever enough
 to judge which files matter is a gate that will eventually judge wrong. The rebuild is cheap
 (content-addressed cache; 18 of 19 judge calls hit on 2026-09-23), but it is not free and it is not
-optional.
+optional. The build also writes `evals/ragas/dataset.build.json` (engine commit, cache figures), and
+the gate reads that file's commit time too: a rebuild that served everything from cache changes no
+row, and without the record there would be nothing to commit and the gate could never go green
+again (hit twice on 2026-10-14). Commit the record with the dataset; its cache figures are the
+evidence that the engine change reached no model input.
 
 The reply cache that makes the rebuild cheap is **local only**. CI restores no such cache (the
 only cached thing in the workflow is Python packages), so every paid run there marks all 20 rows

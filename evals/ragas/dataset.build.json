@@ -1,0 +1,13 @@
+{
+  "engine_commit": "93381d7ab44c21f4490dbd51ede1d711640e0552",
+  "built_at": "2026-10-14T11:33:29.683Z",
+  "rows": 20,
+  "pdf_reads": {
+    "cached": 18,
+    "paid": 2
+  },
+  "judge_calls": {
+    "cached": 19,
+    "paid": 0
+  }
+}

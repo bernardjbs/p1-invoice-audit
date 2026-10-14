@@ -25,6 +25,11 @@
 set -euo pipefail
 
 DATASET="evals/ragas/dataset.jsonl"
+# The build record is written on every build even when no row changes, so a
+# rebuild that served everything from cache (an engine edit that reached no
+# model input) still has a commit to its name. Its cache figures are the
+# evidence; the row file alone cannot carry it.
+BUILD_RECORD="evals/ragas/dataset.build.json"
 
 # What counts as "the engine" for this purpose: anything that changes what the
 # engine SAYS about an invoice. Tests are excluded -- they change constantly and
@@ -40,7 +45,7 @@ if [[ ! -f "$DATASET" ]]; then
   exit 1
 fi
 
-dataset_ts=$(git log -1 --format=%ct -- "$DATASET" || true)
+dataset_ts=$(git log -1 --format=%ct -- "$DATASET" "$BUILD_RECORD" || true)
 engine_ts=$(git log -1 --format=%ct -- "${ENGINE_PATHS[@]}" || true)
 
 if [[ -z "$dataset_ts" || -z "$engine_ts" ]]; then
@@ -57,7 +62,7 @@ if (( engine_ts > dataset_ts )); then
   echo "check-eval-dataset-fresh: the eval dataset is older than the engine." >&2
   echo "" >&2
   echo "  engine last changed : $changed" >&2
-  echo "  dataset last built  : $(git log -1 --format='%h %s' -- "$DATASET")" >&2
+  echo "  dataset last built  : $(git log -1 --format='%h %s' -- "$DATASET" "$BUILD_RECORD")" >&2
   echo "" >&2
   echo "  The gate grades a recording of what the engine said. Marking it now would" >&2
   echo "  score the OLD engine and pass, proving nothing about the change you made." >&2

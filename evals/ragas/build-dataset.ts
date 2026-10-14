@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { sql } from '../../apps/api/src/db/client'
@@ -19,6 +20,18 @@ import { downloadInvoicePdf } from '../../apps/api/src/lib/storage'
 import { cachingJudge, cachingReader, describe, newStats } from '../lib/model-cache'
 import { renderInvoice } from '../lib/render-invoice'
 
+/** The commit the engine was at when this recording was made; 'unknown' outside a checkout. */
+function engineCommit(): string {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+  } catch {
+    return 'unknown'
+  }
+}
+
 /**
  * Build the fixed grading dataset for the contract-terms step.
  *
@@ -37,6 +50,19 @@ import { renderInvoice } from '../lib/render-invoice'
  */
 
 const OUT = resolve(import.meta.dirname, 'dataset.jsonl')
+/**
+ * The build record beside the dataset: which engine commit the recording was
+ * made against and how much of it the content-addressed cache served.
+ *
+ * Written on every build, so a rebuild whose rows come out byte-identical still
+ * leaves something to commit. That matters because the freshness gate compares
+ * COMMIT times: an engine-folder change that alters no model input (a comment,
+ * a trace flush) rebuilds entirely from cache and changes no row, and without
+ * this file the gate could never be satisfied again (measured 2026-10-14, twice
+ * in one day). The cache figures are the evidence that the engine change did not
+ * reach the model: 100% served means every prompt and PDF hashed the same.
+ */
+const BUILD_RECORD = resolve(import.meta.dirname, 'dataset.build.json')
 const USE_CACHE = !process.argv.includes('--no-cache')
 const CONCURRENCY = 4
 
@@ -50,6 +76,8 @@ const CONCURRENCY = 4
  * dataset never measures that, and it is the failure a user notices first.
  */
 const CLEAN_COUNT = 13
+/** The seed numbers its invoices INV-0001.. (apps/api/src/db/seed.ts); the sample sweep's rail uses the same prefix. */
+const SEEDED_PREFIX = 'INV-0'
 
 /** Which situation each planted invoice exercises. Keyed by invoice number. */
 const CASE_BY_INVOICE: Record<string, string> = {
@@ -194,7 +222,15 @@ async function main(): Promise<void> {
     if (!row) throw new Error(`${number} is not seeded — run \`bun run seed\``)
     chosen.push(row)
   }
-  const clean = rows.filter((r) => !(r.invoice_number in CASE_BY_INVOICE)).slice(0, CLEAN_COUNT)
+  // Seeded invoices only (`INV-0…`), never whatever else the local database
+  // holds: an e2e run leaves `E2E-…` rows behind, and those sort BEFORE `INV-`,
+  // so an unfiltered pick took two of them as clean rows and dropped INV-0012
+  // and INV-0013 from the recording (2026-10-14, twice in one day).
+  const clean = rows
+    .filter(
+      (r) => r.invoice_number.startsWith(SEEDED_PREFIX) && !(r.invoice_number in CASE_BY_INVOICE),
+    )
+    .slice(0, CLEAN_COUNT)
   if (clean.length < CLEAN_COUNT) {
     throw new Error(`only ${clean.length} clean invoices seeded, need ${CLEAN_COUNT}`)
   }
@@ -228,6 +264,20 @@ async function main(): Promise<void> {
 
   built.sort((a, b) => a.invoice_number.localeCompare(b.invoice_number))
   await writeFile(OUT, built.map((r) => JSON.stringify(r)).join('\n') + '\n')
+  await writeFile(
+    BUILD_RECORD,
+    JSON.stringify(
+      {
+        engine_commit: engineCommit(),
+        built_at: new Date().toISOString(),
+        rows: built.length,
+        pdf_reads: { cached: readerStats.hits, paid: readerStats.misses },
+        judge_calls: { cached: judgeStats.hits, paid: judgeStats.misses },
+      },
+      null,
+      2,
+    ) + '\n',
+  )
 
   if (failed.length > 0) {
     console.log(`\n${failed.length} row(s) the engine could not answer:`)
