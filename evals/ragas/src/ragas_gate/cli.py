@@ -45,7 +45,9 @@ EXIT_MISCONFIGURED = 2
 
 def load_config(
     path: Path,
-) -> tuple[dict[str, float], float, frozenset[str], frozenset[str], frozenset[str], str | None]:
+) -> tuple[
+    dict[str, float], float, frozenset[str], frozenset[str], frozenset[str], str | None, int
+]:
     if not path.is_file():
         raise FileNotFoundError(f"no gate config at {path}")
     data = tomllib.loads(path.read_text())
@@ -59,6 +61,9 @@ def load_config(
         str(m) for m in data.get("gate", {}).get("report_only_metrics", [])
     )
     judge_model = data.get("gate", {}).get("judge_model")
+    judge_samples = int(data.get("gate", {}).get("judge_samples", 1))
+    if judge_samples < 1:
+        raise ValueError(f"{path}: judge_samples must be at least 1")
     return (
         thresholds,
         min_graded,
@@ -66,6 +71,7 @@ def load_config(
         report_only,
         report_only_metrics,
         str(judge_model) if judge_model is not None else None,
+        judge_samples,
     )
 
 
@@ -242,6 +248,7 @@ def main(argv: list[str] | None = None) -> int:
             report_only,
             report_only_metrics,
             calibrated_judge,
+            judge_samples,
         ) = load_config(args.config)
     except (FileNotFoundError, ValueError) as err:
         print(f"ragas-gate: {err}", file=sys.stderr)
@@ -282,7 +289,11 @@ def main(argv: list[str] | None = None) -> int:
                 return EXIT_MISCONFIGURED
             try:
                 judged_from = run_grading(
-                    args.dataset, args.grade, args.judge_model, args.rubric.read_text()
+                    args.dataset,
+                    args.grade,
+                    args.judge_model,
+                    args.rubric.read_text(),
+                    samples=judge_samples,
                 )
             except Exception as err:  # noqa: BLE001 - report the cause, never a traceback
                 print(f"ragas-gate: grading failed: {err}", file=sys.stderr)
@@ -364,7 +375,9 @@ def main(argv: list[str] | None = None) -> int:
     )
 
 
-def run_grading(dataset: Path, out: Path, model: str | None, rubric: str) -> Path:
+def run_grading(
+    dataset: Path, out: Path, model: str | None, rubric: str, samples: int = 1
+) -> Path:
     """Grade the dataset's prose and save the scores.
 
     Imported here rather than at module load so the free paths never pull in the
@@ -374,12 +387,15 @@ def run_grading(dataset: Path, out: Path, model: str | None, rubric: str) -> Pat
     import asyncio
 
     from .grading import (
+        DEFAULT_CACHE_DIR,
         DEFAULT_JUDGE_MODEL,
+        average_samples,
         build_judge,
         build_metric,
         build_rubric_metric,
         grade_rows,
         load_grading_rows,
+        sample_cache_dir,
         write_scores,
     )
 
@@ -392,11 +408,18 @@ def run_grading(dataset: Path, out: Path, model: str | None, rubric: str) -> Pat
         f"  faithfulness  on the {breaches} breach row(s) only — undefined on a pass"
     )
 
-    judge = build_judge(model=judge_model)
-    scored = asyncio.run(
-        grade_rows(rows, build_metric(judge), build_rubric_metric(judge, rubric))
-    )
-    write_scores(out, scored, model=judge_model)
+    # One judge per sample, each with its own cache, so the samples are three
+    # draws and not one draw replayed; the rows then take the mean.
+    sampled: list[list[dict]] = []
+    for k in range(1, samples + 1):
+        judge = build_judge(model=judge_model, cache_dir=sample_cache_dir(DEFAULT_CACHE_DIR, k))
+        sampled.append(
+            asyncio.run(grade_rows(rows, build_metric(judge), build_rubric_metric(judge, rubric)))
+        )
+        if samples > 1:
+            print(f"  sample {k} of {samples} graded")
+    scored = average_samples(sampled)
+    write_scores(out, scored, model=judge_model, samples=samples)
 
     graded = sum(1 for r in scored if r.get("rubric_score") is not None)
     print(f"ragas-gate: {graded} of {len(scored)} rows graded, written to {out}")

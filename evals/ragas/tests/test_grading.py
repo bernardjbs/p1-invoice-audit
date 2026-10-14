@@ -411,3 +411,62 @@ class TestJudgeCacheIsKeyedByModel:
         location = Path(judge_cache_dir(str(base), model)).resolve()
         assert location != base
         assert location.parent == base
+
+
+# --- Several draws per row, averaged ----------------------------------------
+#
+# Measured 2026-10-14: one marking of the same twenty summaries gave 0.547,
+# 0.656 and 0.781. A single draw is not a measurement, so the gate marks each
+# row several times and averages. The three states (number, None, n/a) must
+# survive the mean, and the samples must be independent draws, not replays.
+
+from ragas_gate.grading import average_samples, sample_cache_dir, write_scores  # noqa: E402
+
+
+def _sample(*rubric: float | None | str) -> list[dict]:
+    return [
+        {"invoice_number": f"INV-{i}", "case": "clean", "faithfulness": "n/a", "rubric_score": v}
+        for i, v in enumerate(rubric)
+    ]
+
+
+class TestAverageSamples:
+    def test_each_row_takes_the_mean_of_its_draws(self) -> None:
+        merged = average_samples([_sample(0.0, 1.0), _sample(0.5, 1.0), _sample(1.0, 0.25)])
+        assert [r["rubric_score"] for r in merged] == [0.5, 0.75]
+
+    def test_an_ungraded_draw_is_left_out_of_the_mean_not_counted_as_zero(self) -> None:
+        merged = average_samples([_sample(1.0), _sample(None), _sample(0.5)])
+        assert merged[0]["rubric_score"] == 0.75
+
+    def test_all_draws_ungraded_stays_ungraded(self) -> None:
+        merged = average_samples([_sample(None), _sample(None)])
+        assert merged[0]["rubric_score"] is None
+
+    def test_not_applicable_survives_the_mean(self) -> None:
+        merged = average_samples([_sample(0.5), _sample(0.5)])
+        assert merged[0]["faithfulness"] == "n/a"
+
+    def test_samples_over_different_rows_are_refused(self) -> None:
+        other = _sample(0.5)
+        other[0]["invoice_number"] = "INV-X"
+        with pytest.raises(ValueError):
+            average_samples([_sample(0.5), other])
+
+    def test_one_sample_is_the_identity(self) -> None:
+        assert average_samples([_sample(0.25, 0.75)]) == _sample(0.25, 0.75)
+
+
+class TestSampleCacheDir:
+    def test_the_first_draw_keeps_the_plain_directory_so_an_existing_cache_replays(self) -> None:
+        assert sample_cache_dir(".cache/judge", 1) == ".cache/judge"
+
+    def test_every_further_draw_gets_its_own_directory(self) -> None:
+        dirs = {sample_cache_dir(".cache/judge", k) for k in (1, 2, 3)}
+        assert len(dirs) == 3
+
+
+def test_the_sample_count_is_written_beside_the_model(tmp_path: Path) -> None:
+    out = tmp_path / "scores.json"
+    write_scores(out, _sample(0.5), model="judge-x", samples=3)
+    assert json.loads(out.read_text())["judge_samples"] == 3

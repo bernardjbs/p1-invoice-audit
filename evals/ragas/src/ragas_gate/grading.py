@@ -326,10 +326,65 @@ async def grade_rows(
     return list(await asyncio.gather(*(score_one(row) for row in rows)))
 
 
-def write_scores(path: Path, scored: list[dict], model: str = DEFAULT_JUDGE_MODEL) -> None:
+def average_samples(samples: list[list[dict]]) -> list[dict]:
+    """One row per invoice, each judged value the mean of its samples.
+
+    A single marking is a draw, not a measurement. Measured 2026-10-14 on the
+    same twenty summaries, fresh cache each time: Haiku 5.5 gave gating means of
+    0.547, 0.656 and 0.781, with single clean rows swinging from 0 to 1. Three
+    draws averaged narrow that spread by about root three, which is the
+    difference between a bar that cries wolf one run in twelve and one in a
+    hundred. The judge's cost per run triples, from about a cent to about three.
+
+    Each sample is a full `grade_rows` result over the same rows, in order. A
+    value is averaged over the samples that produced a number; all-ungraded
+    stays None and not-applicable stays not-applicable, so the gate's three
+    states survive the mean.
+    """
+    from .scoring import NOT_APPLICABLE
+
+    if not samples:
+        return []
+    first = samples[0]
+    for other in samples[1:]:
+        if [r["invoice_number"] for r in other] != [r["invoice_number"] for r in first]:
+            raise ValueError("judge samples do not cover the same rows in the same order")
+    out: list[dict] = []
+    for i, row in enumerate(first):
+        merged = {"invoice_number": row["invoice_number"], "case": row["case"]}
+        for metric in (k for k in row if k not in ("invoice_number", "case")):
+            values = [sample[i].get(metric) for sample in samples]
+            numbers = [float(v) for v in values if isinstance(v, (int, float))]
+            if numbers:
+                merged[metric] = sum(numbers) / len(numbers)
+            elif all(v == NOT_APPLICABLE for v in values):
+                merged[metric] = NOT_APPLICABLE
+            else:
+                merged[metric] = None
+        out.append(merged)
+    return out
+
+
+def sample_cache_dir(base: str, sample: int) -> str:
+    """Where sample `sample` (1-based) keeps its judge replies.
+
+    The cache is keyed on the prompt, so three samples of one prompt in one
+    directory would be one call replayed twice. Each sample beyond the first
+    gets its own directory; the first keeps the plain one so an existing cache
+    still replays.
+    """
+    return base if sample == 1 else f"{base}/sample-{sample}"
+
+
+def write_scores(
+    path: Path, scored: list[dict], model: str = DEFAULT_JUDGE_MODEL, samples: int = 1
+) -> None:
     """Write a scores file the gate can read back.
 
     The judge model is recorded with the scores because two runs are only
     comparable if the same judge produced both. It is evidence, not decoration.
+    So is the sample count: a mean of three is a different measurement from one.
     """
-    path.write_text(json.dumps({"model": model, "rows": scored}, indent=2) + "\n")
+    path.write_text(
+        json.dumps({"model": model, "judge_samples": samples, "rows": scored}, indent=2) + "\n"
+    )

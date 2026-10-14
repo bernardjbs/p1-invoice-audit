@@ -19,10 +19,12 @@
 # other. Calibration record (gating-row mean, 16 rows):
 #   2026-09-08  Haiku 4.5 judge, Sonnet 4.6 prose   0.562  -> bar 0.75, then 0.6 the same day
 #   2026-09-08  Haiku 4.5 judge, Sonnet 4.6 prose   0.688  (prompt fix; held on 2026-09-23)
-#   2026-10-14  Haiku 5.5 judge, Sonnet 4.6 prose   0.547  (old prose, new judge)
-#   2026-10-14  Haiku 5.5 judge, Sonnet 5.5 prose   0.547  -> bar 0.5
-# The last two rows are the same mean on different prose: the judge moved, the
-# prose did not, so the bar follows the judge. Ruled by Bernard 2026-10-14.
+#   2026-10-14  Haiku 5.5 judge, Sonnet 4.6 prose   0.547  (old prose, new judge, one draw)
+#   2026-10-14  Haiku 5.5 judge, Sonnet 5.5 prose   0.547, 0.656, 0.781 (three draws) -> bar 0.5
+# The bar was first lowered on the belief that the new judge marks lower; the
+# two further draws showed that 0.547 was a low draw and the new judge's mean
+# (about 0.66) is near the old one's. What differs is the spread, twice as
+# wide, hence `judge_samples` under [gate]. Ruled by Bernard 2026-10-14.
 rubric_score = 0.5
 
 # "Did it assert anything the documents do not support." Still scored, still
@@ -65,6 +67,13 @@ verdict_correct = 0.9
 # The judge the rubric_score bar was set against. Marks from any other judge
 # are refused, not compared: re-measure, then change this and the bar together.
 judge_model = "claude-haiku-5-5"
+# How many times each summary is marked per run; the row takes the mean.
+# Measured 2026-10-14, same twenty summaries, fresh cache each time: one marking
+# gave gating means of 0.547, 0.656 and 0.781 (spread 0.23, single clean rows 0
+# to 1). With one draw a 0.5 bar sits about 1.4 spreads above it, roughly one
+# false red in twelve runs; three draws averaged put it near 2.4, about one in a
+# hundred. Costs about two more cents per paid run. Ruled by Bernard 2026-10-14.
+judge_samples = 3
 # A mean over a handful of surviving rows is not a mean over the dataset. At
 # least this share of the rows a metric APPLIES to must actually have graded, or
 # the gate fails regardless of the average -- otherwise a collapse of the

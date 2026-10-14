@@ -1,47 +1,48 @@
 {
   "model": "claude-haiku-5-5",
+  "judge_samples": 3,
   "rows": [
     {
       "invoice_number": "INV-0001",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.75
+      "rubric_score": 0.9166666666666666
     },
     {
       "invoice_number": "INV-0002",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.75
+      "rubric_score": 0.5833333333333334
     },
     {
       "invoice_number": "INV-0003",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.0
+      "rubric_score": 0.25
     },
     {
       "invoice_number": "INV-0004",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.75
+      "rubric_score": 0.8333333333333334
     },
     {
       "invoice_number": "INV-0005",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.0
+      "rubric_score": 0.4166666666666667
     },
     {
       "invoice_number": "INV-0006",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.75
+      "rubric_score": 0.6666666666666666
     },
     {
       "invoice_number": "INV-0007",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.0
+      "rubric_score": 0.5
     },
     {
       "invoice_number": "INV-0008",
@@ -53,13 +54,13 @@
       "invoice_number": "INV-0009",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 1.0
+      "rubric_score": 0.8333333333333334
     },
     {
       "invoice_number": "INV-0010",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.0
+      "rubric_score": 0.16666666666666666
     },
     {
       "invoice_number": "INV-0011",
@@ -71,37 +72,37 @@
       "invoice_number": "INV-0012",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.0
+      "rubric_score": 0.25
     },
     {
       "invoice_number": "INV-0013",
       "case": "clean",
       "faithfulness": "n/a",
-      "rubric_score": 0.75
+      "rubric_score": 0.8333333333333334
     },
     {
       "invoice_number": "INV-0016",
       "case": "rate-cap-20pct",
-      "faithfulness": 0.7333333333333333,
-      "rubric_score": 0.5
+      "faithfulness": 0.7444444444444445,
+      "rubric_score": 0.3333333333333333
     },
     {
       "invoice_number": "INV-0017",
       "case": "rate-cap-10pct",
-      "faithfulness": 0.0,
-      "rubric_score": 0.5
+      "faithfulness": 0.24561403508771928,
+      "rubric_score": 0.6666666666666666
     },
     {
       "invoice_number": "INV-0018",
       "case": "arithmetic",
       "faithfulness": 0.5263157894736842,
-      "rubric_score": 0.25
+      "rubric_score": 0.3333333333333333
     },
     {
       "invoice_number": "INV-0019",
       "case": "po-mismatch",
-      "faithfulness": 0.5625,
-      "rubric_score": 0.0
+      "faithfulness": 0.6041666666666666,
+      "rubric_score": 0.3333333333333333
     },
     {
       "invoice_number": "INV-0020",
@@ -118,7 +119,7 @@
     {
       "invoice_number": "INV-0022",
       "case": "adversarial-breach",
-      "faithfulness": 0.7142857142857143,
+      "faithfulness": 0.7261904761904763,
       "rubric_score": 1.0
     }
   ]

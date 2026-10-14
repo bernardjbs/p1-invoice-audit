@@ -396,3 +396,21 @@ def test_a_config_naming_no_judge_checks_nothing(tmp_path: Path) -> None:
     )
     code = main(["--dataset", str(dataset), "--scores", str(scores), "--config", str(config)])
     assert code == EXIT_OK
+
+
+def test_the_config_names_how_many_draws_per_row(tmp_path: Path) -> None:
+    from ragas_gate.cli import load_config
+
+    config = tmp_path / "gate.toml"
+    config.write_text(JUDGED_CONFIG.replace("[gate]", "[gate]\njudge_samples = 3"))
+    assert load_config(config)[6] == 3
+    config.write_text(JUDGED_CONFIG)
+    assert load_config(config)[6] == 1
+
+
+def test_zero_draws_is_refused(tmp_path: Path) -> None:
+    config = tmp_path / "gate.toml"
+    config.write_text(JUDGED_CONFIG.replace("[gate]", "[gate]\njudge_samples = 0"))
+    scores = tmp_path / "scores.json"
+    scores.write_text(json.dumps({"rows": [{"faithfulness": 0.9}]}))
+    assert main(["--fake-scores", str(scores), "--config", str(config)]) == EXIT_MISCONFIGURED
