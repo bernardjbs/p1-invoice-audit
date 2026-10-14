@@ -108,11 +108,16 @@ export async function getInvoiceDetail(id: string): Promise<InvoiceDetail | null
 
   const latestAudit: AuditRunView | null = await readLatestAuditRun(id)
 
-  const [decision] = await sql<
-    { decision: string; note: string | null; decided_at: string | null }[]
-  >`
-    select decision, note, decided_at::text from review_decisions
-    where invoice_id = ${id} order by decided_at desc nulls last limit 1`
+  // Only a decided status carries a decision. The demo's cleanup sweep returns a
+  // decided seeded invoice to paused_review and keeps its decision rows on
+  // record, so after that reset the latest row describes a decision the invoice
+  // no longer carries; showing it would sit beside a fresh review prompt.
+  const carriesDecision = inv.status === 'approved' || inv.status === 'rejected'
+  const [decision] = carriesDecision
+    ? await sql<{ decision: string; note: string | null; decided_at: string | null }[]>`
+        select decision, note, decided_at::text from review_decisions
+        where invoice_id = ${id} order by decided_at desc nulls last limit 1`
+    : []
 
   return {
     invoice: {

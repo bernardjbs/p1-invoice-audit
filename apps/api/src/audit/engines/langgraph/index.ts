@@ -89,7 +89,16 @@ export async function runLangGraphEngine(
   // After the run, never before: the trace's id does not exist until the root
   // run closes. Resolving it here rather than in the worker keeps the whole
   // observability concern inside the engine that produced it.
-  if (trace !== null && traceSink !== undefined) traceSink.url = await trace.url()
+  //
+  // Resolved whether or not anyone asked for the URL, because resolving is also
+  // what FLUSHES the trace. Measured 2026-10-14: a caller with no sink (the
+  // engine integration test) exited with the batch still queued, and the
+  // judge's run sat in LangSmith as "pending" with zero tokens, so the cost it
+  // was meant to evidence was never recorded.
+  if (trace !== null) {
+    const url = await trace.url()
+    if (traceSink !== undefined) traceSink.url = url
+  }
   return result
 }
 

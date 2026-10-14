@@ -170,8 +170,15 @@ class TestWriteScores:
         """Two runs at different thresholds are only comparable if the same
         judge produced both. The model id is evidence, not decoration."""
         out = tmp_path / "scores.json"
-        write_scores(out, [], model="claude-haiku-4-5-20251001")
-        assert json.loads(out.read_text())["model"] == "claude-haiku-4-5-20251001"
+        write_scores(out, [], model="claude-haiku-5-5")
+        assert json.loads(out.read_text())["model"] == "claude-haiku-5-5"
+
+    def test_records_the_default_judge_when_none_is_named(self, tmp_path: Path) -> None:
+        """The default is the judge every unflagged run uses, so a silent change
+        to it changes what every committed score means."""
+        out = tmp_path / "scores.json"
+        write_scores(out, [])
+        assert json.loads(out.read_text())["model"] == "claude-haiku-5-5"
 
 
 class TestBuildJudge:
@@ -192,11 +199,30 @@ class TestBuildJudge:
         from ragas_gate.grading import build_judge
 
         judge = build_judge(
-            model="claude-haiku-4-5-20251001",
+            model="claude-haiku-5-5",
             client=AsyncAnthropic(api_key="not-a-real-key"),
             cache_dir=str(tmp_path / "cache"),
         )
         assert "top_p" not in judge.model_args
+
+    def test_sends_no_temperature_because_haiku_5_5_rejects_any(self, tmp_path: Path) -> None:
+        """Measured 2026-10-14: `claude-haiku-5-5` answers any `temperature`,
+        even 0, with HTTP 400 "`temperature` is deprecated for this model."
+
+        The adapter defaults it to 0.01 and passes it straight through for
+        Anthropic, so every judge call would fail at request time.
+        """
+        pytest.importorskip("anthropic")
+        from anthropic import AsyncAnthropic
+
+        from ragas_gate.grading import build_judge
+
+        judge = build_judge(
+            model="claude-haiku-5-5",
+            client=AsyncAnthropic(api_key="not-a-real-key"),
+            cache_dir=str(tmp_path / "cache"),
+        )
+        assert "temperature" not in judge.model_args
 
 
 # --- The rubric scale, and who each metric applies to ------------------------
@@ -318,9 +344,129 @@ def test_the_judge_gets_room_to_finish(tmp_path: Path) -> None:
     from ragas_gate.grading import MAX_JUDGE_TOKENS, build_judge
 
     judge = build_judge(
-        model="claude-haiku-4-5-20251001",
+        model="claude-haiku-5-5",
         client=AsyncAnthropic(api_key="not-a-real-key"),
         cache_dir=str(tmp_path / "cache"),
     )
     assert judge.model_args["max_tokens"] == MAX_JUDGE_TOKENS
     assert MAX_JUDGE_TOKENS > 1024
+
+
+class TestJudgeCacheIsKeyedByModel:
+    """ragas builds its cache key from the method name and arguments only; the
+    model is not in it. Measured 2026-10-14: the same prompt gave key
+    `111e50cc18c126bc` for a Haiku 4.5 judge and a Haiku 5.5 judge. A shared
+    directory would therefore replay the old model's marks under the new
+    model's name, so the model has to be in the location instead.
+    """
+
+    @staticmethod
+    def cache_location(model: str, base: Path) -> Path:
+        pytest.importorskip("anthropic")
+        from anthropic import AsyncAnthropic
+
+        from ragas_gate.grading import build_judge
+
+        judge = build_judge(
+            model=model,
+            client=AsyncAnthropic(api_key="not-a-real-key"),
+            cache_dir=str(base),
+        )
+        return Path(judge.cache.cache.directory).resolve()
+
+    def test_two_models_never_share_a_cache(self, tmp_path: Path) -> None:
+        old = self.cache_location("claude-haiku-4-5", tmp_path / "judge")
+        new = self.cache_location("claude-haiku-5-5", tmp_path / "judge")
+        assert old != new
+
+    def test_the_same_model_finds_its_own_cache_again(self, tmp_path: Path) -> None:
+        """Otherwise every re-grade re-pays for judgements it already bought."""
+        first = self.cache_location("claude-haiku-5-5", tmp_path / "judge")
+        second = self.cache_location("claude-haiku-5-5", tmp_path / "judge")
+        assert first == second
+
+    def test_the_per_model_cache_sits_beneath_the_base_given(self, tmp_path: Path) -> None:
+        base = (tmp_path / "judge").resolve()
+        location = self.cache_location("claude-haiku-5-5", base)
+        assert location.parent == base
+
+    def test_a_model_id_with_unsafe_characters_stays_inside_the_base(self, tmp_path: Path) -> None:
+        base = (tmp_path / "judge").resolve()
+        location = self.cache_location("../vendor/model:1", base)
+        assert location.parent == base
+
+    def test_ids_differing_only_by_an_unsafe_character_stay_apart(self, tmp_path: Path) -> None:
+        """Replacing unsafe characters must not merge two distinct models."""
+        a = self.cache_location("vendor/model", tmp_path / "judge")
+        b = self.cache_location("vendor_model", tmp_path / "judge")
+        assert a != b
+
+    @pytest.mark.parametrize("model", ["", ".", ".."])
+    def test_a_path_like_model_id_gets_its_own_directory(self, model: str, tmp_path: Path) -> None:
+        """`""` and `"."` would resolve to the base itself, which may hold an
+        older model's marks; `".."` would resolve above it."""
+        from ragas_gate.grading import judge_cache_dir
+
+        base = (tmp_path / "judge").resolve()
+        location = Path(judge_cache_dir(str(base), model)).resolve()
+        assert location != base
+        assert location.parent == base
+
+
+# --- Several draws per row, averaged ----------------------------------------
+#
+# Measured 2026-10-14: one marking of the same twenty summaries gave 0.547,
+# 0.656 and 0.781. A single draw is not a measurement, so the gate marks each
+# row several times and averages. The three states (number, None, n/a) must
+# survive the mean, and the samples must be independent draws, not replays.
+
+from ragas_gate.grading import average_samples, sample_cache_dir, write_scores  # noqa: E402
+
+
+def _sample(*rubric: float | None | str) -> list[dict]:
+    return [
+        {"invoice_number": f"INV-{i}", "case": "clean", "faithfulness": "n/a", "rubric_score": v}
+        for i, v in enumerate(rubric)
+    ]
+
+
+class TestAverageSamples:
+    def test_each_row_takes_the_mean_of_its_draws(self) -> None:
+        merged = average_samples([_sample(0.0, 1.0), _sample(0.5, 1.0), _sample(1.0, 0.25)])
+        assert [r["rubric_score"] for r in merged] == [0.5, 0.75]
+
+    def test_an_ungraded_draw_is_left_out_of_the_mean_not_counted_as_zero(self) -> None:
+        merged = average_samples([_sample(1.0), _sample(None), _sample(0.5)])
+        assert merged[0]["rubric_score"] == 0.75
+
+    def test_all_draws_ungraded_stays_ungraded(self) -> None:
+        merged = average_samples([_sample(None), _sample(None)])
+        assert merged[0]["rubric_score"] is None
+
+    def test_not_applicable_survives_the_mean(self) -> None:
+        merged = average_samples([_sample(0.5), _sample(0.5)])
+        assert merged[0]["faithfulness"] == "n/a"
+
+    def test_samples_over_different_rows_are_refused(self) -> None:
+        other = _sample(0.5)
+        other[0]["invoice_number"] = "INV-X"
+        with pytest.raises(ValueError):
+            average_samples([_sample(0.5), other])
+
+    def test_one_sample_is_the_identity(self) -> None:
+        assert average_samples([_sample(0.25, 0.75)]) == _sample(0.25, 0.75)
+
+
+class TestSampleCacheDir:
+    def test_the_first_draw_keeps_the_plain_directory_so_an_existing_cache_replays(self) -> None:
+        assert sample_cache_dir(".cache/judge", 1) == ".cache/judge"
+
+    def test_every_further_draw_gets_its_own_directory(self) -> None:
+        dirs = {sample_cache_dir(".cache/judge", k) for k in (1, 2, 3)}
+        assert len(dirs) == 3
+
+
+def test_the_sample_count_is_written_beside_the_model(tmp_path: Path) -> None:
+    out = tmp_path / "scores.json"
+    write_scores(out, _sample(0.5), model="judge-x", samples=3)
+    assert json.loads(out.read_text())["judge_samples"] == 3

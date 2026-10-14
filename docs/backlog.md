@@ -10,8 +10,11 @@ Every item carries a status: **needs fixing (I know how)**, **needs fixing (need
 (item 9, in part). Item 16, a duplicate invoice number answering an opaque 500 while silently
 overwriting the original's stored PDF, was found and closed the same day and is deleted from here.
 
-**Two production steps are owed before the next deploy proves anything**, both introduced by the
-sample cleanup and neither runnable by an agent:
+**Both production steps below are DONE, verified 2026-10-13** by read-only queries on production:
+`invoices.created_at` exists, and cron job `sample-cleanup` is active on `*/5 * * * *` with 3,873
+succeeded runs, the last at 2026-10-13 02:55 UTC. HISTORICAL (2026-09-29): two production steps were
+owed before the next deploy proved anything, both introduced by the sample cleanup and neither
+runnable by an agent:
 
 1. Apply the migration adding `invoices.created_at` to the production database.
 2. `doppler run -c prd -- bun run scripts/setup-prod-cleanup.ts` to schedule the sweep.
@@ -20,21 +23,27 @@ sample cleanup and neither runnable by an agent:
    waits for a locked sample is 20. Those are two different settings and the wait is their SUM, so
    raising either without doing that sum is how a visitor ends up looking at a dead button for
    hours. Set `SAMPLE_TTL_MINUTES` in the deployed env; the schedule is this script's argument.
+   `SEEDED_RESET_MINUTES` (default 15) is the same kind of setting for the seeded review example: a
+   decision on it stands that long, then the same sweep puts the invoice back in review, so the same
+   sum applies.
 
-Until the second runs, samples accumulate in production and every one of them stays marked as in
+HISTORICAL, before the second ran: samples accumulate in production and every one of them stays marked as in
 use for ever, because nothing clears them. Item 11 was moved out of Batch A into Batch B: removing the Flagged status means
 a database migration, and doing only the visible half would leave the app able to crash on a row
 the database still permits. See item 15 for the invoice builder, which is deliberately deferred.
 
-**Start here:** 10, then 8, then 1, then 4. Items 8 and 1 together make the product unreachable to a visitor:
-nothing on the live site has been audited, and there is no visible way into an invoice even if it
-had been. Item 4 is the engine gap. Everything else can wait behind those.
+**Start here: item 1, then Batch B (4, 12, 10, 11).** Item 8 shipped on 2026-09-29, so an invoice
+can now be opened and three sample invoices can be audited in one click. What has not changed is
+that **nothing on the live site has ever been audited**: the dashboard a visitor lands on is still
+a wall of zeros, which makes item 1 the largest remaining gap. Item 4 is the engine gap and travels
+with Batch B.
 
 ---
 
 ## 1. The live demo shows an audit tool that has never audited anything
 
-**Needs fixing, I know how.**
+**Needs fixing, I know how.** In progress: GitHub issue #3, plan
+`2026-10-14-p1-demo-self-reset-and-model-swap`.
 
 The dashboard reads Received 22, then Auditing 0, Passed 0, Paused 0, Approved 0, Rejected 0. Every
 invoice in the list says Received, and opening one says "Not audited yet". The seed loads invoices
@@ -159,14 +168,24 @@ right without deciding whether the upload page is a data-entry screen or a showc
 
 ## 6. Continuous integration runs everything on every push
 
-**Needs fixing, needs scoping** (small, but it has two traps).
+**No action required as a cost measure.** Measured 2026-10-13: 5 of 31 pushes were docs-only, about
+75 cents in total. Kept as hygiene to do before P2 forks the workflow, which would otherwise copy the
+gap.
 
-There are no path filters, so a change to a markdown file still triggers the paid judging run: 20
-judge calls that cannot possibly be affected by it.
+There are no path filters, so a change to a markdown file still pays for everything it cannot
+possibly affect. Re-read from `ci.yml` on 2026-10-08: three jobs spend model money on every push to
+`main` and every manual dispatch, `langgraph-e2e` (Claude reads the PDFs, the contract agent
+judges), `eval-grade` (20 judge calls) and `integration` (the seed's 32 OpenAI embeddings). A fourth,
+`e2e-mock`, runs the same 32-embedding seed on every pull request push as well.
+
+Fix: `paths-ignore` (or a changed-files step) so a docs-only diff skips the paid jobs. Item 18
+covers the embedding spend separately, and measured too small to act on.
 
 Traps, both known before starting: a _skipped_ job can block a required status check under branch
 protection, so set the two up together rather than twice; and landing the change is itself a merge,
-so it costs one paid run to save future ones. Batch it rather than pushing it alone.
+so it costs one paid run to save future ones. Batch it rather than pushing it alone. Branch
+protection returned 403 while the repo was private (2026-09-23); the repo is now public, where GitHub
+Free allows it, so recheck that first.
 
 Worth doing before P2 inherits this workflow.
 
@@ -348,6 +367,79 @@ function rather than a new document the model has never seen.
 declared total (item 10). Until those land, anything a visitor builds comes back with two findings
 that are the app's fault rather than theirs, and a builder is precisely the feature that invites
 someone to poke at exactly those holes.
+
+## 17. Sign-in with Microsoft Entra ID, tied to the approver
+
+**Needs fixing, needs scoping.** Ruled 2026-10-08 (from the build-resume session): Entra goes in
+this project, not in Apply Proper (P5, `~/code/projects-portfolio/p5-apply-proper`), because here it is the right tool rather than a
+resume choice.
+
+The app has no sign-in today. Its users would be procurement staff, who sign in with Microsoft 365
+at work, and it already has a job for identity: the human who clears a paused invoice. With Entra
+that approval is tied to a signed-in user and recorded in the audit trail ("who approved this
+payment"). It also answers Perth demand: 13 of 45 Azure-naming ads ask for Entra ID or Active
+Directory (`~/code/build-resume/docs/azure-path.md`, measured 2026-09-08).
+
+Unknowns to scope before planning:
+
+- **Cost.** Believed free at this scale; unverified. Read Microsoft's official Entra pricing page
+  first, then set a $0 budget alert on the Azure account.
+- **The open demo.** Sign-in must not lock visitors out. Needs a guest demo mode (read-only or
+  sandboxed) alongside it.
+- **Workforce tenant or External ID.** Staff sign-in suggests a workforce tenant; decide with the
+  guest mode.
+
+## 18. CI re-embeds the same 32 contract clauses on every run
+
+**No action required.** Measured: 32 clauses, about 2,100 tokens, under $0.0001 per run. Kept for the
+record. Raised 2026-10-08 from the P5 session; verified against `ci.yml`.
+
+`bun run seed` embeds the contract corpus through OpenAI (`apps/api/scripts/embed-contract-docs.ts`,
+`text-embedding-3-small`), one call per clause. Three CI jobs seed: `e2e-mock` on every pull request
+push and every push to `main`, `langgraph-e2e` and `integration` on `main` and dispatch. The clauses
+never change, so every one of those runs buys the same 32 vectors again.
+
+The fix, should it ever be wanted: embed once, commit the vectors as a fixture, and have the seed load the fixture instead of
+calling OpenAI. Three things to hold while doing it:
+
+- **The fixture is tied to the model.** Retrieval embeds the query live with the same model
+  (`apps/api/src/audit/retrieval.ts`), so a fixture built with a different model returns nonsense
+  rankings, silently. Record the model beside the vectors and refuse a mismatch.
+- **It does not remove the key from CI.** `config/env` validates both model keys at import even when
+  nothing spends them, per the `integration` job's own comment. Check whether that validation can be
+  made lazy, or accept that the `ci` config keeps the key unspent.
+- **`langgraph-e2e` still spends on OpenAI**, because a real audit embeds its query. Only the seed's
+  share goes.
+
+If it is done, combine it with item 6 in one merge: both edit the paid side of CI, and each landing costs a paid run.
+
+## 19. A test leaves orphan queue jobs behind
+
+**Status: needs fixing (needs scoping).** Ruled 2026-10-14: record, with a trigger.
+
+Some integration test deletes its invoices without draining the audit queue, so jobs pointing at
+rows that no longer exist pile up locally. Found during T3 of the self-reset plan: 12 such jobs
+filled the worker's 10-job read and failed two unrelated review tests. The review test now drains
+the queue in its own setup, so nothing is broken today; the test responsible is not identified.
+
+**Trigger:** the next time an integration test fails on queue contention, or before P2 forks this
+test suite. The fix is to find the test (run each integration file alone against an empty queue
+and read the depth afterwards) and give it an `afterAll` drain or a delete that also purges its jobs.
+
+---
+
+## 20. The eval tool pins the Anthropic SDK below 1.0 for a reason that no longer holds
+
+**Status: needs fixing (needs scoping).** Ruled 2026-10-14: record, with a trigger.
+
+`evals/ragas/pyproject.toml` holds `anthropic` under 1.0. The docstring's reason (the adapter still
+sent `temperature`) was closed by the judge dropping `temperature` itself on 2026-10-14. Whether
+1.x changes anything else on the judge path (instructor's forced tool call, the reply shape) is
+unmeasured.
+
+**Trigger:** the next dependency upgrade of the eval tool, or the moment ragas or instructor requires
+`anthropic` 1.x. Lift the pin, run `uv run --project evals/ragas pytest evals/ragas/tests -q`, then
+one paid re-grade from a warm cache and compare the per-metric means.
 
 ---
 

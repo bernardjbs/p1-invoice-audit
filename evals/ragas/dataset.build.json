@@ -1,0 +1,14 @@
+{
+  "engine_commit": "77b399834c1927491ad7f95a54f6f1ee5a4df499",
+  "engine_tree_dirty": false,
+  "built_at": "2026-10-14T12:06:35.550Z",
+  "rows": 20,
+  "pdf_reads": {
+    "cached": 20,
+    "paid": 0
+  },
+  "judge_calls": {
+    "cached": 19,
+    "paid": 0
+  }
+}

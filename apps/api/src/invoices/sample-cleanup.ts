@@ -93,3 +93,63 @@ export async function sweepExpiredSamples(): Promise<SweepResult> {
   const pdfsRemoved = paths.length ? await deleteInvoicePdfs(paths) : 0
   return { removed: safe.map((r) => r.invoice_number), pdfsRemoved }
 }
+
+/**
+ * The seeded invoices, which the live demo shows as its worked examples. Not
+ * deleted by anything here: the reset below only ever changes their status.
+ */
+export const SEEDED_PREFIX = 'INV-0'
+
+/**
+ * How long a decision on a seeded invoice stands before the sweep puts the
+ * invoice back in review.
+ *
+ * WHY RESET AT ALL. The review endpoint has no sign-in, so any visitor can
+ * approve or reject the demo's waiting example, and once they have, the next
+ * visitor finds nothing waiting and cannot try the step the demo exists to
+ * show. Putting it back is what keeps the example usable by everyone.
+ *
+ * Fifteen minutes for the same reason as the sample TTL above: long enough that
+ * the visitor who decided can still see their decision land, short enough that
+ * the example comes back well within the next visitor's patience.
+ */
+export const SEEDED_RESET_MINUTES = Number(process.env.SEEDED_RESET_MINUTES ?? 15)
+
+/**
+ * Same shape as the sample rail: a prefix match AND something after it. The
+ * bare prefix names no invoice, and `X-INV-0001` must not be in scope just
+ * because it contains the pattern.
+ */
+export function isSeededInvoiceNumber(n: string): boolean {
+  return n.startsWith(SEEDED_PREFIX) && n.length > SEEDED_PREFIX.length
+}
+
+export type ResetResult = { reset: string[] }
+
+/**
+ * Put every seeded invoice whose latest decision is past its time back into
+ * `paused_review`, and name them.
+ *
+ * Only the status moves. The decision rows and the audit run stay, so what a
+ * visitor decided remains on record; the invoice is simply waiting again. The
+ * LATEST decision is what counts: an invoice approved an hour ago and rejected
+ * a minute ago is somebody's live decision, not a stale one.
+ */
+export async function resetStaleDecisions(): Promise<ResetResult> {
+  const stale = await sql<{ id: string; invoice_number: string }[]>`
+    select i.id, i.invoice_number
+    from invoices i
+    where i.invoice_number like ${`${SEEDED_PREFIX}%`}
+      and i.status in ('approved', 'rejected')
+      and (select max(d.decided_at) from review_decisions d where d.invoice_id = i.id)
+          < now() - make_interval(mins => ${SEEDED_RESET_MINUTES})`
+  // Defence in depth, as in the sample sweep: the `like` pattern also matches
+  // the bare prefix, and a future edit widening it would be invisible. Every
+  // row is re-checked against the predicate before anything is written, so the
+  // rail holds even if the query stops holding it.
+  const safe = stale.filter((r) => isSeededInvoiceNumber(r.invoice_number))
+  if (!safe.length) return { reset: [] }
+
+  await sql`update invoices set status = 'paused_review' where id = any(${safe.map((r) => r.id)})`
+  return { reset: safe.map((r) => r.invoice_number) }
+}

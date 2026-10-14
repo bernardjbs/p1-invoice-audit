@@ -297,3 +297,120 @@ def test_a_not_applicable_judged_score_survives_the_merge(tmp_path: Path) -> Non
         )
         == EXIT_OK
     )
+
+
+# --- The bar belongs to one judge -------------------------------------------
+#
+# Measured 2026-10-14: the same twenty summaries scored 0.688 under one judge
+# and 0.547 under the next. A threshold is a number on one judge's scale, so the
+# config names the judge it was set against and the gate refuses marks from any
+# other. Both directions are pinned: a different judge must stop the gate dead,
+# and the named judge must pass through untouched.
+
+JUDGED_CONFIG = """
+[thresholds]
+faithfulness = 0.8
+[gate]
+min_graded_fraction = 0.9
+judge_model = "judge-the-bar-was-set-with"
+"""
+
+
+def _judged(tmp_path: Path, marked_by: str | None) -> tuple[Path, Path, Path]:
+    config = tmp_path / "gate.toml"
+    config.write_text(JUDGED_CONFIG)
+    dataset = _dataset(tmp_path, [_row("INV-1", "prose-only-breach")])
+    scores = tmp_path / "scores.json"
+    body: dict = {"rows": [{"invoice_number": "INV-1", "faithfulness": 0.9}]}
+    if marked_by is not None:
+        body["model"] = marked_by
+    scores.write_text(json.dumps(body))
+    return config, dataset, scores
+
+
+def test_marks_from_a_different_judge_are_refused(tmp_path: Path, capsys) -> None:
+    config, dataset, scores = _judged(tmp_path, "some-other-judge")
+    code = main(["--dataset", str(dataset), "--scores", str(scores), "--config", str(config)])
+    assert code == EXIT_MISCONFIGURED
+    err = capsys.readouterr().err
+    assert "judge-the-bar-was-set-with" in err and "some-other-judge" in err
+
+
+def test_marks_from_an_unnamed_judge_are_refused(tmp_path: Path) -> None:
+    config, dataset, scores = _judged(tmp_path, None)
+    code = main(["--dataset", str(dataset), "--scores", str(scores), "--config", str(config)])
+    assert code == EXIT_MISCONFIGURED
+
+
+def test_marks_from_the_named_judge_pass_through(tmp_path: Path) -> None:
+    config, dataset, scores = _judged(tmp_path, "judge-the-bar-was-set-with")
+    code = main(["--dataset", str(dataset), "--scores", str(scores), "--config", str(config)])
+    assert code == EXIT_OK
+
+
+def test_saved_marks_alone_are_held_to_the_same_rule(tmp_path: Path) -> None:
+    config, _dataset_unused, scores = _judged(tmp_path, "some-other-judge")
+    rubric = tmp_path / "rubric.md"
+    rubric.write_text("what good looks like")
+    code = main(["--scores", str(scores), "--config", str(config), "--rubric", str(rubric)])
+    assert code == EXIT_MISCONFIGURED
+
+
+def test_grading_with_a_different_judge_refuses_before_any_model_is_built(
+    tmp_path: Path, capsys
+) -> None:
+    """The paid path: the refusal must come before a client exists, so a key is
+    never needed to observe it."""
+    config, dataset, _scores = _judged(tmp_path, None)
+    rubric = tmp_path / "rubric.md"
+    rubric.write_text("what good looks like")
+    out = tmp_path / "graded.json"
+    code = main(
+        [
+            "--dataset",
+            str(dataset),
+            "--grade",
+            str(out),
+            "--judge-model",
+            "some-other-judge",
+            "--config",
+            str(config),
+            "--rubric",
+            str(rubric),
+        ]
+    )
+    assert code == EXIT_MISCONFIGURED
+    assert not out.exists()
+    assert "Refusing to call a model" in capsys.readouterr().err
+
+
+def test_a_config_naming_no_judge_checks_nothing(tmp_path: Path) -> None:
+    """Fabricated and legacy scores files carry no judge; without a claim in the
+    config there is nothing to hold them to."""
+    config = tmp_path / "gate.toml"
+    config.write_text(MERGE_CONFIG)
+    dataset = _dataset(tmp_path, [_row("INV-1", "prose-only-breach")])
+    scores = tmp_path / "scores.json"
+    scores.write_text(
+        json.dumps({"model": "whoever", "rows": [{"invoice_number": "INV-1", "faithfulness": 0.9}]})
+    )
+    code = main(["--dataset", str(dataset), "--scores", str(scores), "--config", str(config)])
+    assert code == EXIT_OK
+
+
+def test_the_config_names_how_many_draws_per_row(tmp_path: Path) -> None:
+    from ragas_gate.cli import load_config
+
+    config = tmp_path / "gate.toml"
+    config.write_text(JUDGED_CONFIG.replace("[gate]", "[gate]\njudge_samples = 3"))
+    assert load_config(config)[6] == 3
+    config.write_text(JUDGED_CONFIG)
+    assert load_config(config)[6] == 1
+
+
+def test_zero_draws_is_refused(tmp_path: Path) -> None:
+    config = tmp_path / "gate.toml"
+    config.write_text(JUDGED_CONFIG.replace("[gate]", "[gate]\njudge_samples = 0"))
+    scores = tmp_path / "scores.json"
+    scores.write_text(json.dumps({"rows": [{"faithfulness": 0.9}]}))
+    assert main(["--fake-scores", str(scores), "--config", str(config)]) == EXIT_MISCONFIGURED

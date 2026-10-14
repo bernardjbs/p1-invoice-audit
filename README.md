@@ -24,6 +24,21 @@ requirements.
 
 ---
 
+## Trying it
+
+The live site ships three sample invoices, each with a single fault planted in it: the sums not
+adding up, a line billed above its contracted rate, and a charge the contract forbids. Pressing
+**Use this** on the upload page fills the form and attaches the PDF, so a visitor runs a real
+audit in one click, against the real engine, and watches it pause for a human.
+
+One fault each is deliberate. An invoice carrying every fault proves almost nothing: when all the
+checks fire together, a check that fires unconditionally is indistinguishable from one that works.
+
+Every sample was run through the deployed engine before release and the page's wording was
+corrected to match what came back rather than what was expected. The page also states the gap it
+cannot yet close: nothing uploaded through the form carries a purchase-order reference, so that
+check flags on everything.
+
 ## The problem
 
 Procurement fraud and billing errors hide in the gap between three documents: the invoice, the
@@ -81,12 +96,19 @@ $ doppler run -c dev -- bun evals/extraction/run.ts
 scoring 22 invoices against the default model…
 per-field accuracy
   field                correct/total   accuracy
-  description            32/33      97.0%
   invoiceNumber          22/22     100.0%
   abn                    22/22     100.0%
   subtotalAud            22/22     100.0%
-  ...
-overall  99.6% over 275 field comparisons (threshold  90.0%)
+  gstAud                 22/22     100.0%
+  totalAud               22/22     100.0%
+  itemCode               33/33     100.0%
+  description            33/33     100.0%
+  qty                    33/33     100.0%
+  unitPriceAud           33/33     100.0%
+  lineTotalAud           33/33     100.0%
+
+overall 100.0% over 275 field comparisons (threshold  90.0%)
+model reads: 20 cached, 2 paid for (91% served from cache)
 PASS
 ```
 
@@ -95,9 +117,10 @@ are free because the data is synthetic: the seed writes the invoice rows, the PD
 those rows, and the answer key is derived from the rows again — the model only ever sees the rendered
 page.
 
-Haiku 4.5 scored 1.0000 on the original twenty invoices, so the cheaper model stayed. The single
-imperfect field today is the description of a deliberately adversarial invoice, which the model
-declines to transcribe verbatim — left as measured rather than tuned away.
+Haiku 5.5 scored 100.0% over 275 field comparisons on the 22 seeded invoices (measured 2026-10-14),
+so the cheaper model stayed. Haiku 4.5 had one imperfect field, the description of a deliberately
+adversarial invoice, which it declined to transcribe verbatim; Haiku 5.5 transcribes it as printed.
+Both are left as measured rather than tuned.
 
 ## Evidence discipline
 

@@ -17,6 +17,17 @@ try {
   // no .env.local (e.g. a bare checkout) — tests use built-in local fallbacks.
 }
 
+/**
+ * This tier must never post to the real Slack channel. Doppler `dev` holds the
+ * real webhook, and on 2026-10-14 every test that paused an invoice made the
+ * worker send Bernard a real "paused for review" message. Cleared here, in the
+ * config body, because it runs in the main process before any worker or test
+ * module starts, and workers (and the worker processes tests spawn) inherit this
+ * environment. The CI slice imports this file, so it inherits the clearing too.
+ * Guarded by `src/notify/slack.integration-env.integration.test.ts`.
+ */
+delete process.env.SLACK_WEBHOOK_URL
+
 export default defineConfig({
   test: {
     include: ['**/*.integration.test.ts'],

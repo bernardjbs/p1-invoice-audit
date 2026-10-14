@@ -45,16 +45,25 @@ watches that folder and cannot tell a presentation helper from a prompt change, 
 build until the dataset is rebuilt and re-graded — deliberately blunt, because a gate clever enough
 to judge which files matter is a gate that will eventually judge wrong. The rebuild is cheap
 (content-addressed cache; 18 of 19 judge calls hit on 2026-09-23), but it is not free and it is not
-optional.
+optional. The build also writes `evals/ragas/dataset.build.json` (engine commit, cache figures), and
+the gate reads that file's commit time too: a rebuild that served everything from cache changes no
+row, and without the record there would be nothing to commit and the gate could never go green
+again (hit twice on 2026-10-14). Commit the record with the dataset; its cache figures are the
+evidence that the engine change reached no model input.
 
 The reply cache that makes the rebuild cheap is **local only**. CI restores no such cache (the
 only cached thing in the workflow is Python packages), so every paid run there marks all 20 rows
 afresh. Measured 2026-09-24: two runs of the same commit scored 0.635 and 0.734, which replayed
 judgements could not do.
 
-**Builds forked from this repo work on branches and merge by pull request.** P1 itself did not:
-its history is a straight line of pushes to `main`, which is what taught the lesson. The rule is
-written here because P2 forks this repo and inherits this file.
+**Work on branches and merge by pull request.** This now binds P1 itself, not only its forks.
+The convention was first written on the premise that P1 had no more feature work; the backlog made
+that false, and Batch A merged as PR #2 on 2026-09-29. Merge with a merge commit or a rebase,
+never a squash: the per-commit reasoning is the point of writing it. `delete_branch_on_merge` is
+on, so a merged branch removes itself.
+
+Everything before PR #2 is a straight line of pushes to `main`, which is what taught the lesson,
+and that history is not rewritten to pretend otherwise.
 
 Two reasons, and the second is the one that does not show up in a diff:
 

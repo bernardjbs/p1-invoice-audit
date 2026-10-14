@@ -11,13 +11,14 @@ a model, credentials or network.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
 
-DEFAULT_JUDGE_MODEL = "claude-haiku-4-5-20251001"
+DEFAULT_JUDGE_MODEL = "claude-haiku-5-5"
 """Cheapest tier first, deliberately.
 
 The plan requires an agreement check against a stronger judge on a handful of
@@ -30,7 +31,30 @@ DEFAULT_CACHE_DIR = ".cache/judge"
 
 Re-grading after a threshold tweak must not re-pay for the same judgement, and
 `runs` is the factor with the multiplier in it: rows x metrics x runs.
+
+This is the BASE: each judge model caches in its own subdirectory beneath it
+(see `judge_cache_dir`), so a model swap starts from an empty cache.
 """
+
+def judge_cache_dir(base: str, model: str) -> str:
+    """The cache directory for one judge model, beneath the base given.
+
+    ragas builds its cache key from the method name and arguments only; the
+    model is not in it. Measured 2026-10-14: the same prompt gave the identical
+    key `111e50cc18c126bc` for a Haiku 4.5 judge and a Haiku 5.5 judge. One
+    shared directory would replay the old model's marks after a model swap and
+    `write_scores` would stamp them with the new model's name, so the model goes
+    into the location instead.
+
+    An ID that is not already filesystem-safe gets its unsafe characters
+    replaced plus a short hash of the original, so it can neither escape the
+    base nor collide with a different ID that differs only by those characters.
+    """
+    safe = re.sub(r"[^A-Za-z0-9._-]", "_", model)
+    if safe != model or safe in {"", ".", ".."}:
+        safe = f"{safe}-{hashlib.sha256(model.encode()).hexdigest()[:8]}"
+    return str(Path(base) / safe)
+
 
 MAX_JUDGE_TOKENS = 4096
 
@@ -162,13 +186,17 @@ def build_judge(
 ) -> Any:
     """Construct the judge.
 
-    Two traps, both undocumented and both found the hard way:
+    Three traps, all undocumented and all found the hard way:
 
     1. The adapter sets `temperature` AND `top_p`; the Anthropic API rejects the
        pair. It fails at request time, not at setup, so it is popped here and
        asserted in a test rather than remembered.
     2. The Anthropic SDK removed `temperature` in 1.x while the adapter still
        sends it, which is why the dependency is pinned below 1.0.
+    3. `claude-haiku-5-5` rejects any `temperature`, even 0, with HTTP 400
+       "`temperature` is deprecated for this model." (measured 2026-10-14).
+       The adapter defaults it to 0.01 and passes it straight through for
+       Anthropic, so it is popped too, and asserted in a test.
     """
     from ragas.cache import DiskCacheBackend
     from ragas.llms import llm_factory
@@ -184,9 +212,10 @@ def build_judge(
         model,
         provider="anthropic",
         client=client,
-        cache=DiskCacheBackend(cache_dir=cache_dir),
+        cache=DiskCacheBackend(cache_dir=judge_cache_dir(cache_dir, model)),
     )
     judge.model_args.pop("top_p", None)
+    judge.model_args.pop("temperature", None)
 
     # The adapter's default cap is 1024, and faithfulness blew through it on two
     # invoices (2026-09-08): it decomposes an answer into claims and checks each
@@ -297,10 +326,65 @@ async def grade_rows(
     return list(await asyncio.gather(*(score_one(row) for row in rows)))
 
 
-def write_scores(path: Path, scored: list[dict], model: str = DEFAULT_JUDGE_MODEL) -> None:
+def average_samples(samples: list[list[dict]]) -> list[dict]:
+    """One row per invoice, each judged value the mean of its samples.
+
+    A single marking is a draw, not a measurement. Measured 2026-10-14 on the
+    same twenty summaries, fresh cache each time: Haiku 5.5 gave gating means of
+    0.547, 0.656 and 0.781, with single clean rows swinging from 0 to 1. Three
+    draws averaged narrow that spread by about root three, which is the
+    difference between a bar that cries wolf one run in twelve and one in a
+    hundred. The judge's cost per run triples, from about a cent to about three.
+
+    Each sample is a full `grade_rows` result over the same rows, in order. A
+    value is averaged over the samples that produced a number; all-ungraded
+    stays None and not-applicable stays not-applicable, so the gate's three
+    states survive the mean.
+    """
+    from .scoring import NOT_APPLICABLE
+
+    if not samples:
+        return []
+    first = samples[0]
+    for other in samples[1:]:
+        if [r["invoice_number"] for r in other] != [r["invoice_number"] for r in first]:
+            raise ValueError("judge samples do not cover the same rows in the same order")
+    out: list[dict] = []
+    for i, row in enumerate(first):
+        merged = {"invoice_number": row["invoice_number"], "case": row["case"]}
+        for metric in (k for k in row if k not in ("invoice_number", "case")):
+            values = [sample[i].get(metric) for sample in samples]
+            numbers = [float(v) for v in values if isinstance(v, (int, float))]
+            if numbers:
+                merged[metric] = sum(numbers) / len(numbers)
+            elif all(v == NOT_APPLICABLE for v in values):
+                merged[metric] = NOT_APPLICABLE
+            else:
+                merged[metric] = None
+        out.append(merged)
+    return out
+
+
+def sample_cache_dir(base: str, sample: int) -> str:
+    """Where sample `sample` (1-based) keeps its judge replies.
+
+    The cache is keyed on the prompt, so three samples of one prompt in one
+    directory would be one call replayed twice. Each sample beyond the first
+    gets its own directory; the first keeps the plain one so an existing cache
+    still replays.
+    """
+    return base if sample == 1 else f"{base}/sample-{sample}"
+
+
+def write_scores(
+    path: Path, scored: list[dict], model: str = DEFAULT_JUDGE_MODEL, samples: int = 1
+) -> None:
     """Write a scores file the gate can read back.
 
     The judge model is recorded with the scores because two runs are only
     comparable if the same judge produced both. It is evidence, not decoration.
+    So is the sample count: a mean of three is a different measurement from one.
     """
-    path.write_text(json.dumps({"model": model, "rows": scored}, indent=2) + "\n")
+    path.write_text(
+        json.dumps({"model": model, "judge_samples": samples, "rows": scored}, indent=2) + "\n"
+    )
