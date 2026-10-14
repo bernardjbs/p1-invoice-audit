@@ -23,6 +23,9 @@ runnable by an agent:
    waits for a locked sample is 20. Those are two different settings and the wait is their SUM, so
    raising either without doing that sum is how a visitor ends up looking at a dead button for
    hours. Set `SAMPLE_TTL_MINUTES` in the deployed env; the schedule is this script's argument.
+   `SEEDED_RESET_MINUTES` (default 15) is the same kind of setting for the seeded review example: a
+   decision on it stands that long, then the same sweep puts the invoice back in review, so the same
+   sum applies.
 
 HISTORICAL, before the second ran: samples accumulate in production and every one of them stays marked as in
 use for ever, because nothing clears them. Item 11 was moved out of Batch A into Batch B: removing the Flagged status means
@@ -39,7 +42,8 @@ with Batch B.
 
 ## 1. The live demo shows an audit tool that has never audited anything
 
-**Needs fixing, I know how.**
+**Needs fixing, I know how.** In progress: GitHub issue #3, plan
+`2026-10-14-p1-demo-self-reset-and-model-swap`.
 
 The dashboard reads Received 22, then Auditing 0, Passed 0, Paused 0, Approved 0, Rejected 0. Every
 invoice in the list says Received, and opening one says "Not audited yet". The seed loads invoices
@@ -164,14 +168,24 @@ right without deciding whether the upload page is a data-entry screen or a showc
 
 ## 6. Continuous integration runs everything on every push
 
-**Needs fixing, needs scoping** (small, but it has two traps).
+**No action required as a cost measure.** Measured 2026-10-13: 5 of 31 pushes were docs-only, about
+75 cents in total. Kept as hygiene to do before P2 forks the workflow, which would otherwise copy the
+gap.
 
-There are no path filters, so a change to a markdown file still triggers the paid judging run: 20
-judge calls that cannot possibly be affected by it.
+There are no path filters, so a change to a markdown file still pays for everything it cannot
+possibly affect. Re-read from `ci.yml` on 2026-10-08: three jobs spend model money on every push to
+`main` and every manual dispatch, `langgraph-e2e` (Claude reads the PDFs, the contract agent
+judges), `eval-grade` (20 judge calls) and `integration` (the seed's 32 OpenAI embeddings). A fourth,
+`e2e-mock`, runs the same 32-embedding seed on every pull request push as well.
+
+Fix: `paths-ignore` (or a changed-files step) so a docs-only diff skips the paid jobs. Item 18
+covers the embedding spend separately, and measured too small to act on.
 
 Traps, both known before starting: a _skipped_ job can block a required status check under branch
 protection, so set the two up together rather than twice; and landing the change is itself a merge,
-so it costs one paid run to save future ones. Batch it rather than pushing it alone.
+so it costs one paid run to save future ones. Batch it rather than pushing it alone. Branch
+protection returned 403 while the repo was private (2026-09-23); the repo is now public, where GitHub
+Free allows it, so recheck that first.
 
 Worth doing before P2 inherits this workflow.
 
@@ -374,6 +388,30 @@ Unknowns to scope before planning:
   sandboxed) alongside it.
 - **Workforce tenant or External ID.** Staff sign-in suggests a workforce tenant; decide with the
   guest mode.
+
+## 18. CI re-embeds the same 32 contract clauses on every run
+
+**No action required.** Measured: 32 clauses, about 2,100 tokens, under $0.0001 per run. Kept for the
+record. Raised 2026-10-08 from the P5 session; verified against `ci.yml`.
+
+`bun run seed` embeds the contract corpus through OpenAI (`apps/api/scripts/embed-contract-docs.ts`,
+`text-embedding-3-small`), one call per clause. Three CI jobs seed: `e2e-mock` on every pull request
+push and every push to `main`, `langgraph-e2e` and `integration` on `main` and dispatch. The clauses
+never change, so every one of those runs buys the same 32 vectors again.
+
+The fix, should it ever be wanted: embed once, commit the vectors as a fixture, and have the seed load the fixture instead of
+calling OpenAI. Three things to hold while doing it:
+
+- **The fixture is tied to the model.** Retrieval embeds the query live with the same model
+  (`apps/api/src/audit/retrieval.ts`), so a fixture built with a different model returns nonsense
+  rankings, silently. Record the model beside the vectors and refuse a mismatch.
+- **It does not remove the key from CI.** `config/env` validates both model keys at import even when
+  nothing spends them, per the `integration` job's own comment. Check whether that validation can be
+  made lazy, or accept that the `ci` config keeps the key unspent.
+- **`langgraph-e2e` still spends on OpenAI**, because a real audit embeds its query. Only the seed's
+  share goes.
+
+If it is done, combine it with item 6 in one merge: both edit the paid side of CI, and each landing costs a paid run.
 
 ---
 
