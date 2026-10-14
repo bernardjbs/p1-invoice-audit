@@ -413,6 +413,34 @@ calling OpenAI. Three things to hold while doing it:
 
 If it is done, combine it with item 6 in one merge: both edit the paid side of CI, and each landing costs a paid run.
 
+## 19. A test leaves orphan queue jobs behind
+
+**Status: needs fixing (needs scoping).** Ruled 2026-10-14: record, with a trigger.
+
+Some integration test deletes its invoices without draining the audit queue, so jobs pointing at
+rows that no longer exist pile up locally. Found during T3 of the self-reset plan: 12 such jobs
+filled the worker's 10-job read and failed two unrelated review tests. The review test now drains
+the queue in its own setup, so nothing is broken today; the test responsible is not identified.
+
+**Trigger:** the next time an integration test fails on queue contention, or before P2 forks this
+test suite. The fix is to find the test (run each integration file alone against an empty queue
+and read the depth afterwards) and give it an `afterAll` drain or a delete that also purges its jobs.
+
+---
+
+## 20. The eval tool pins the Anthropic SDK below 1.0 for a reason that no longer holds
+
+**Status: needs fixing (needs scoping).** Ruled 2026-10-14: record, with a trigger.
+
+`evals/ragas/pyproject.toml` holds `anthropic` under 1.0. The docstring's reason (the adapter still
+sent `temperature`) was closed by the judge dropping `temperature` itself on 2026-10-14. Whether
+1.x changes anything else on the judge path (instructor's forced tool call, the reply shape) is
+unmeasured.
+
+**Trigger:** the next dependency upgrade of the eval tool, or the moment ragas or instructor requires
+`anthropic` 1.x. Lift the pin, run `uv run --project evals/ragas pytest evals/ragas/tests -q`, then
+one paid re-grade from a warm cache and compare the per-metric means.
+
 ---
 
 ## Verified working, 2026-09-24
