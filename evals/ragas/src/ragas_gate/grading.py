@@ -11,6 +11,7 @@ a model, credentials or network.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import re
 from dataclasses import dataclass
@@ -30,7 +31,30 @@ DEFAULT_CACHE_DIR = ".cache/judge"
 
 Re-grading after a threshold tweak must not re-pay for the same judgement, and
 `runs` is the factor with the multiplier in it: rows x metrics x runs.
+
+This is the BASE: each judge model caches in its own subdirectory beneath it
+(see `judge_cache_dir`), so a model swap starts from an empty cache.
 """
+
+def judge_cache_dir(base: str, model: str) -> str:
+    """The cache directory for one judge model, beneath the base given.
+
+    ragas builds its cache key from the method name and arguments only; the
+    model is not in it. Measured 2026-10-14: the same prompt gave the identical
+    key `111e50cc18c126bc` for a Haiku 4.5 judge and a Haiku 5.5 judge. One
+    shared directory would replay the old model's marks after a model swap and
+    `write_scores` would stamp them with the new model's name, so the model goes
+    into the location instead.
+
+    An ID that is not already filesystem-safe gets its unsafe characters
+    replaced plus a short hash of the original, so it can neither escape the
+    base nor collide with a different ID that differs only by those characters.
+    """
+    safe = re.sub(r"[^A-Za-z0-9._-]", "_", model)
+    if safe != model or safe in {"", ".", ".."}:
+        safe = f"{safe}-{hashlib.sha256(model.encode()).hexdigest()[:8]}"
+    return str(Path(base) / safe)
+
 
 MAX_JUDGE_TOKENS = 4096
 
@@ -184,7 +208,7 @@ def build_judge(
         model,
         provider="anthropic",
         client=client,
-        cache=DiskCacheBackend(cache_dir=cache_dir),
+        cache=DiskCacheBackend(cache_dir=judge_cache_dir(cache_dir, model)),
     )
     judge.model_args.pop("top_p", None)
 

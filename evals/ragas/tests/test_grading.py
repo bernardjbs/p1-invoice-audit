@@ -331,3 +331,53 @@ def test_the_judge_gets_room_to_finish(tmp_path: Path) -> None:
     )
     assert judge.model_args["max_tokens"] == MAX_JUDGE_TOKENS
     assert MAX_JUDGE_TOKENS > 1024
+
+
+class TestJudgeCacheIsKeyedByModel:
+    """ragas builds its cache key from the method name and arguments only; the
+    model is not in it. Measured 2026-10-14: the same prompt gave key
+    `111e50cc18c126bc` for a Haiku 4.5 judge and a Haiku 5.5 judge. A shared
+    directory would therefore replay the old model's marks under the new
+    model's name, so the model has to be in the location instead.
+    """
+
+    @staticmethod
+    def cache_location(model: str, base: Path) -> Path:
+        pytest.importorskip("anthropic")
+        from anthropic import AsyncAnthropic
+
+        from ragas_gate.grading import build_judge
+
+        judge = build_judge(
+            model=model,
+            client=AsyncAnthropic(api_key="not-a-real-key"),
+            cache_dir=str(base),
+        )
+        return Path(judge.cache.cache.directory).resolve()
+
+    def test_two_models_never_share_a_cache(self, tmp_path: Path) -> None:
+        old = self.cache_location("claude-haiku-4-5", tmp_path / "judge")
+        new = self.cache_location("claude-haiku-5-5", tmp_path / "judge")
+        assert old != new
+
+    def test_the_same_model_finds_its_own_cache_again(self, tmp_path: Path) -> None:
+        """Otherwise every re-grade re-pays for judgements it already bought."""
+        first = self.cache_location("claude-haiku-5-5", tmp_path / "judge")
+        second = self.cache_location("claude-haiku-5-5", tmp_path / "judge")
+        assert first == second
+
+    def test_the_per_model_cache_sits_beneath_the_base_given(self, tmp_path: Path) -> None:
+        base = (tmp_path / "judge").resolve()
+        location = self.cache_location("claude-haiku-5-5", base)
+        assert location.parent == base
+
+    def test_a_model_id_with_unsafe_characters_stays_inside_the_base(self, tmp_path: Path) -> None:
+        base = (tmp_path / "judge").resolve()
+        location = self.cache_location("../vendor/model:1", base)
+        assert location.parent == base
+
+    def test_ids_differing_only_by_an_unsafe_character_stay_apart(self, tmp_path: Path) -> None:
+        """Replacing unsafe characters must not merge two distinct models."""
+        a = self.cache_location("vendor/model", tmp_path / "judge")
+        b = self.cache_location("vendor_model", tmp_path / "judge")
+        assert a != b
