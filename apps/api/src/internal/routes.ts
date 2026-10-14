@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { runWorkerOnce } from '../worker'
-import { sweepExpiredSamples } from '../invoices/sample-cleanup'
+import { resetStaleDecisions, sweepExpiredSamples } from '../invoices/sample-cleanup'
 
 /**
  * Internal worker-drain route (plan T14). On Vercel there is no long-running
@@ -43,6 +43,10 @@ internalRoutes.post('/internal/cleanup-samples', async (c) => {
     return c.json({ error: { message: 'cleanup not configured', code: 'unconfigured' } }, 503)
   if (c.req.header('x-worker-secret') !== secret)
     return c.json({ error: { message: 'forbidden', code: 'forbidden' } }, 403)
-  const result = await sweepExpiredSamples()
-  return c.json(result, 200)
+  const sweep = await sweepExpiredSamples()
+  // The same schedule also returns the demo's seeded examples to review once a
+  // visitor's decision on them has stood long enough. Fixed in the same module,
+  // for the same reason: nothing a caller sends can change what it touches.
+  const { reset } = await resetStaleDecisions()
+  return c.json({ ...sweep, reset }, 200)
 })
