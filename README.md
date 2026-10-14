@@ -96,12 +96,19 @@ $ doppler run -c dev -- bun evals/extraction/run.ts
 scoring 22 invoices against the default model…
 per-field accuracy
   field                correct/total   accuracy
-  description            32/33      97.0%
   invoiceNumber          22/22     100.0%
   abn                    22/22     100.0%
   subtotalAud            22/22     100.0%
-  ...
-overall  99.6% over 275 field comparisons (threshold  90.0%)
+  gstAud                 22/22     100.0%
+  totalAud               22/22     100.0%
+  itemCode               33/33     100.0%
+  description            33/33     100.0%
+  qty                    33/33     100.0%
+  unitPriceAud           33/33     100.0%
+  lineTotalAud           33/33     100.0%
+
+overall 100.0% over 275 field comparisons (threshold  90.0%)
+model reads: 20 cached, 2 paid for (91% served from cache)
 PASS
 ```
 
