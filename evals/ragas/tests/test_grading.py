@@ -170,8 +170,15 @@ class TestWriteScores:
         """Two runs at different thresholds are only comparable if the same
         judge produced both. The model id is evidence, not decoration."""
         out = tmp_path / "scores.json"
-        write_scores(out, [], model="claude-haiku-4-5-20251001")
-        assert json.loads(out.read_text())["model"] == "claude-haiku-4-5-20251001"
+        write_scores(out, [], model="claude-haiku-5-5")
+        assert json.loads(out.read_text())["model"] == "claude-haiku-5-5"
+
+    def test_records_the_default_judge_when_none_is_named(self, tmp_path: Path) -> None:
+        """The default is the judge every unflagged run uses, so a silent change
+        to it changes what every committed score means."""
+        out = tmp_path / "scores.json"
+        write_scores(out, [])
+        assert json.loads(out.read_text())["model"] == "claude-haiku-5-5"
 
 
 class TestBuildJudge:
@@ -192,7 +199,7 @@ class TestBuildJudge:
         from ragas_gate.grading import build_judge
 
         judge = build_judge(
-            model="claude-haiku-4-5-20251001",
+            model="claude-haiku-5-5",
             client=AsyncAnthropic(api_key="not-a-real-key"),
             cache_dir=str(tmp_path / "cache"),
         )
@@ -318,7 +325,7 @@ def test_the_judge_gets_room_to_finish(tmp_path: Path) -> None:
     from ragas_gate.grading import MAX_JUDGE_TOKENS, build_judge
 
     judge = build_judge(
-        model="claude-haiku-4-5-20251001",
+        model="claude-haiku-5-5",
         client=AsyncAnthropic(api_key="not-a-real-key"),
         cache_dir=str(tmp_path / "cache"),
     )

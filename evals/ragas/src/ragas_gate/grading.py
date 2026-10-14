@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
 
-DEFAULT_JUDGE_MODEL = "claude-haiku-4-5-20251001"
+DEFAULT_JUDGE_MODEL = "claude-haiku-5-5"
 """Cheapest tier first, deliberately.
 
 The plan requires an agreement check against a stronger judge on a handful of
